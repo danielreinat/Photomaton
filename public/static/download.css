@@ -46,6 +46,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-content: flex-end;
 }
 
 .download-list {
