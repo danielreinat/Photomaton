@@ -64,11 +64,11 @@ const updateCountdown = (value) => {
   countdown.textContent = value;
 };
 
-const PHOTO_QUALITY = 0.98;
 const PHOTO_CONSTRAINTS = {
   facingMode: "user",
-  width: { ideal: 1920 },
-  height: { ideal: 1080 },
+  width: { ideal: 4096 },
+  height: { ideal: 2160 },
+  frameRate: { ideal: 30, max: 60 },
 };
 
 const capturePhoto = () => {
@@ -79,7 +79,7 @@ const capturePhoto = () => {
     canvasContext.drawImage(cameraFeed, 0, 0);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
-    photoDataUrls.push(photoCanvas.toDataURL("image/jpeg", PHOTO_QUALITY));
+    photoDataUrls.push(photoCanvas.toDataURL("image/png"));
   }
   const now = new Date();
   const timestamp = now.toLocaleTimeString("es-ES", {
