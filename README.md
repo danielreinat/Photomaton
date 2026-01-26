@@ -26,6 +26,16 @@ python app.py
 
 Después abre el navegador en `http://localhost:5001`.
 
+### Ventana de escritorio (opcional)
+
+Si prefieres abrir la app en una ventana local en lugar del navegador, instala
+`pywebview` y ejecuta:
+
+```bash
+pip install pywebview
+python app.py --window
+```
+
 ## Notas
 
 - La cámara está simulada con el navegador. Esta base se puede ampliar con integración real de almacenamiento o entrega.
