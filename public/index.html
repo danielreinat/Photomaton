@@ -31,21 +31,23 @@
       </div>
     </section>
 
-    <section class="panel hidden" id="phonePanel">
-      <h2>Enviar por SMS</h2>
-      <p>Introduce tu número de teléfono para enviarte la foto por SMS.</p>
-      <div class="input-group">
-        <input id="phoneInput" type="tel" placeholder="Ej: +34 600 123 123" />
-        <button id="phoneSubmit" class="button button--primary">Enviar</button>
-      </div>
-    </section>
-
-    <section class="panel hidden" id="screenPanel">
-      <h2>¿Mostrar en pantalla?</h2>
-      <p id="whatsappHelper"></p>
-      <div class="actions">
-        <button id="showYes" class="button button--primary">Sí</button>
-        <button id="showNo" class="button button--ghost">No</button>
+    <section class="panel hidden" id="qrPanel">
+      <h2>Descarga tus fotos</h2>
+      <p>Escanea este código QR desde tu móvil para abrir la página de descarga.</p>
+      <div class="qr-grid">
+        <div class="qr-card">
+          <img id="qrImage" src="" alt="Código QR de descarga" />
+          <a id="downloadLink" class="button button--ghost hidden" href="#" target="_blank" rel="noreferrer">
+            Abrir enlace de descarga
+          </a>
+        </div>
+        <div class="qr-meta">
+          <p class="helper-text" id="qrStatus">Generando enlace seguro...</p>
+          <div class="actions">
+            <button id="showPreview" class="button button--ghost">Ver resumen</button>
+            <button id="retryQr" class="button button--primary hidden">Reintentar</button>
+          </div>
+        </div>
       </div>
     </section>
 
