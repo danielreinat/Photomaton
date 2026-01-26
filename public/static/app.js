@@ -128,54 +128,38 @@ const startSession = async () => {
 startButton.addEventListener("click", startSession);
 resetButton.addEventListener("click", resetState);
 
-const buildShareMessage = () =>
-  "¡Hola! Aquí tienes tu foto del photomaton. Adjunta la imagen descargada.";
-
-const dataUrlToFile = (dataUrl) => {
-  const [header, data] = dataUrl.split(",");
-  const mime = header.match(/:(.*?);/)[1];
-  const binary = atob(data);
-  const array = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    array[i] = binary.charCodeAt(i);
-  }
-  return new File([array], "photomaton.jpg", { type: mime });
-};
-
 phoneSubmit.addEventListener("click", async () => {
   const phone = phoneInput.value.trim();
   if (!phone) {
     statusLabel.textContent = "Necesitamos un número válido para enviar las fotos.";
     return;
   }
-  const sanitizedPhone = phone.replace(/[^\d]/g, "");
-  const message = buildShareMessage();
-  statusLabel.textContent = `Preparando envío a ${phone} por WhatsApp...`;
+  if (!lastPhotoDataUrl) {
+    statusLabel.textContent = "No hay ninguna foto para enviar todavía.";
+    return;
+  }
+  statusLabel.textContent = `Enviando foto a ${phone} por SMS...`;
   resetPanels();
   screenPanel.classList.remove("hidden");
-  whatsappHelper.textContent =
-    "Se abrirá WhatsApp Web para enviar la foto. Si tu navegador lo permite, también aparecerá el diálogo de compartir.";
+  whatsappHelper.textContent = "Procesando envío de la foto...";
 
-  if (lastPhotoDataUrl) {
-    const photoFile = dataUrlToFile(lastPhotoDataUrl);
-    if (navigator.canShare && navigator.canShare({ files: [photoFile] })) {
-      try {
-        await navigator.share({
-          files: [photoFile],
-          text: message,
-          title: "Photomaton",
-        });
-      } catch (error) {
-        // Ignorar cancelaciones del usuario.
-      }
+  try {
+    const response = await fetch("/api/send-sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, imageDataUrl: lastPhotoDataUrl }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || "No se pudo enviar el SMS.");
     }
-  }
-
-  if (sanitizedPhone) {
-    const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(
-      message
-    )}`;
-    window.open(whatsappUrl, "_blank");
+    statusLabel.textContent = "SMS enviado correctamente.";
+    whatsappHelper.textContent = "Foto enviada. ¡Gracias por participar!";
+  } catch (error) {
+    statusLabel.textContent =
+      "No se pudo enviar el SMS. Revisa los datos e inténtalo de nuevo.";
+    whatsappHelper.textContent =
+      error instanceof Error ? error.message : "Error desconocido.";
   }
 });
 
