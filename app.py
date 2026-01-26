@@ -85,7 +85,6 @@ def _render_download_page(session_id: str, images: list[str]) -> str:
             """
         )
     items = "\n".join(items_html)
-    safe_session = html.escape(session_id, quote=True)
     return f"""<!DOCTYPE html>
 <html lang="es">
   <head>
@@ -98,13 +97,36 @@ def _render_download_page(session_id: str, images: list[str]) -> str:
     <main class="download">
       <header>
         <h1>Descarga tus fotos</h1>
-        <p>Sesión {safe_session}</p>
+        <div class="download-actions">
+          <button class="button" id="downloadAll" type="button">Descargar todas</button>
+        </div>
       </header>
       <ul class="download-list">
         {items}
       </ul>
       <p class="helper">Puedes guardar cada foto en tu móvil tocando “Descargar”.</p>
     </main>
+    <script>
+      const downloadAllButton = document.getElementById("downloadAll");
+      const downloadLinks = Array.from(
+        document.querySelectorAll(".download-item a")
+      );
+
+      const triggerDownload = (link) => {{
+        const anchor = document.createElement("a");
+        anchor.href = link.href;
+        anchor.download = link.getAttribute("download") || "";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }};
+
+      downloadAllButton?.addEventListener("click", () => {{
+        downloadLinks.forEach((link, index) => {{
+          setTimeout(() => triggerDownload(link), index * 300);
+        }});
+      }});
+    </script>
   </body>
 </html>
 """
