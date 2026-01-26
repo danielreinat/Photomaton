@@ -10,6 +10,7 @@
   <div class="background-glow"></div>
   <main class="app">
     <header class="app__header">
+      <img class="app__logo" src="/static/logo.png" alt="Logo El Tardeo" />
       <span class="badge">Photomaton</span>
       <h1>Photomaton Studio</h1>
       <p>Captura tres momentos inolvidables y envíalos al instante.</p>
@@ -21,7 +22,7 @@
         <video id="cameraFeed" class="camera-preview__video hidden" autoplay playsinline muted></video>
         <canvas id="photoCanvas" class="camera-preview__canvas hidden"></canvas>
         <div class="camera-preview__status" id="countdown">Listo</div>
-        <div class="camera-preview__label" id="status">Pulsa “Realizar foto” para comenzar.</div>
+        <div class="camera-preview__label" id="status">Pulsa "Realizar foto" para comenzar.</div>
       </div>
 
       <div class="actions">
@@ -37,23 +38,23 @@
         <input id="phoneInput" type="tel" placeholder="Ej: +34 600 123 123" />
         <button id="phoneSubmit" class="button button--primary">Enviar</button>
       </div>
-      <p class="helper-text" id="whatsappHelper"></p>
     </section>
 
     <section class="panel hidden" id="screenPanel">
-      <h2>Mostrar en pantalla</h2>
-      <p>¿Quieres que las fotos aparezcan en pantalla?</p>
+      <h2>¿Mostrar en pantalla?</h2>
+      <p id="whatsappHelper"></p>
       <div class="actions">
-        <button id="showYes" class="button button--primary">Sí, mostrar</button>
-        <button id="showNo" class="button button--ghost">No, finalizar</button>
+        <button id="showYes" class="button button--primary">Sí</button>
+        <button id="showNo" class="button button--ghost">No</button>
       </div>
     </section>
 
     <section class="panel hidden" id="previewPanel">
-      <h2>Vista previa</h2>
-      <p>Simulación de envío a pantalla con las capturas realizadas.</p>
+      <h2>Fotos capturadas</h2>
       <ul id="photoList" class="photo-list"></ul>
-      <button id="closePreview" class="button button--primary">Cerrar</button>
+      <div class="actions">
+        <button id="closePreview" class="button button--ghost">Cerrar</button>
+      </div>
     </section>
   </main>
 
