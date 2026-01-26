@@ -15,7 +15,7 @@ def main() -> None:
     handler = lambda *args, **kwargs: PhotomatonHandler(
         *args, directory=str(root), **kwargs
     )
-    with TCPServer(("", 5000), handler) as httpd:
+    with TCPServer(("", 5001), handler) as httpd:
         print("Servidor listo en http://localhost:5000")
         httpd.serve_forever()
 

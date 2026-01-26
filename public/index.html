@@ -18,6 +18,8 @@
     <section class="card">
       <div class="camera-preview">
         <div class="camera-preview__ring"></div>
+        <video id="cameraFeed" class="camera-preview__video hidden" autoplay playsinline muted></video>
+        <canvas id="photoCanvas" class="camera-preview__canvas hidden"></canvas>
         <div class="camera-preview__status" id="countdown">Listo</div>
         <div class="camera-preview__label" id="status">Pulsa “Realizar foto” para comenzar.</div>
       </div>
@@ -35,6 +37,7 @@
         <input id="phoneInput" type="tel" placeholder="Ej: +34 600 123 123" />
         <button id="phoneSubmit" class="button button--primary">Enviar</button>
       </div>
+      <p class="helper-text" id="whatsappHelper"></p>
     </section>
 
     <section class="panel hidden" id="screenPanel">
