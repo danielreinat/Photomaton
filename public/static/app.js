@@ -156,12 +156,26 @@ const startCamera = async () => {
   if (cameraStream) {
     return;
   }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    statusLabel.textContent =
+      "Tu navegador no soporta la cámara. Usa un dispositivo compatible.";
+    startButton.disabled = true;
+    return;
+  }
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
       audio: false,
     });
     cameraFeed.srcObject = cameraStream;
+    try {
+      await cameraFeed.play();
+    } catch (error) {
+      statusLabel.textContent =
+        "No se pudo iniciar la cámara automáticamente. Toca la pantalla y vuelve a intentarlo.";
+      startButton.disabled = false;
+      return;
+    }
     statusLabel.textContent = "Cámara lista. Pulsa “Realizar foto”.";
   } catch (error) {
     statusLabel.textContent =
