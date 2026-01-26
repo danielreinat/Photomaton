@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photomaton Studio</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="background-glow"></div>
+  <main class="app">
+    <header class="app__header">
+      <span class="badge">Photomaton</span>
+      <h1>Photomaton Studio</h1>
+      <p>Captura tres momentos inolvidables y envíalos al instante.</p>
+    </header>
+
+    <section class="card">
+      <div class="camera-preview">
+        <div class="camera-preview__ring"></div>
+        <video id="cameraFeed" class="camera-preview__video" autoplay playsinline muted></video>
+        <canvas id="photoCanvas" class="camera-preview__canvas"></canvas>
+        <div class="camera-preview__status" id="countdown">Listo</div>
+        <div class="camera-preview__label" id="status">Pulsa “Realizar foto” para comenzar.</div>
+      </div>
+
+      <div class="actions">
+        <button id="startButton" class="button button--primary">Realizar foto</button>
+        <button id="resetButton" class="button button--ghost" disabled>Reiniciar</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="phonePanel">
+      <h2>Enviar por WhatsApp</h2>
+      <p>Introduce tu número de teléfono para enviarte las fotos.</p>
+      <div class="input-group">
+        <input id="phoneInput" type="tel" placeholder="Ej: +34 600 123 123" />
+        <button id="phoneSubmit" class="button button--primary">Enviar</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="screenPanel">
+      <h2>Mostrar en pantalla</h2>
+      <p>¿Quieres que las fotos aparezcan en pantalla?</p>
+      <div class="actions">
+        <button id="showYes" class="button button--primary">Sí, mostrar</button>
+        <button id="showNo" class="button button--ghost">No, finalizar</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="previewPanel">
+      <h2>Vista previa</h2>
+      <p>Simulación de envío a pantalla con las capturas realizadas.</p>
+      <ul id="photoList" class="photo-list"></ul>
+      <button id="closePreview" class="button button--primary">Cerrar</button>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
