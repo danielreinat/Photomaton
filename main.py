@@ -1,39 +1,68 @@
 import time
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, ttk
 
 
 class PhotomatonApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Photomaton")
-        self.root.geometry("480x320")
+        self.root.geometry("560x420")
         self.root.resizable(False, False)
+        self.root.configure(bg="#f4f1ed")
+
+        self._configure_styles()
+
+        self.header_frame = tk.Frame(root, bg="#f4f1ed")
+        self.header_frame.pack(fill="x", padx=24, pady=(24, 12))
 
         self.title_label = tk.Label(
-            root,
-            text="Bienvenido al Photomaton",
-            font=("Helvetica", 18, "bold"),
+            self.header_frame,
+            text="Photomaton Studio",
+            font=("Helvetica", 22, "bold"),
+            bg="#f4f1ed",
+            fg="#3a2f2f",
         )
-        self.title_label.pack(pady=20)
+        self.title_label.pack(anchor="w")
+
+        self.subtitle_label = tk.Label(
+            self.header_frame,
+            text="Captura tres momentos inolvidables.",
+            font=("Helvetica", 12),
+            bg="#f4f1ed",
+            fg="#6b5e57",
+        )
+        self.subtitle_label.pack(anchor="w", pady=(4, 0))
+
+        self.card_frame = tk.Frame(root, bg="#ffffff", bd=0, highlightthickness=0)
+        self.card_frame.pack(fill="both", expand=True, padx=24, pady=(0, 24))
+
+        self.countdown_label = tk.Label(
+            self.card_frame,
+            text="",
+            font=("Helvetica", 36, "bold"),
+            bg="#ffffff",
+            fg="#9a7f6b",
+        )
+        self.countdown_label.pack(pady=(26, 8))
 
         self.status_label = tk.Label(
-            root,
+            self.card_frame,
             text="Pulsa el botón para iniciar la sesión de fotos.",
             font=("Helvetica", 12),
-            wraplength=420,
+            bg="#ffffff",
+            fg="#4a3f38",
+            wraplength=480,
         )
-        self.status_label.pack(pady=10)
+        self.status_label.pack(pady=8)
 
-        self.action_button = tk.Button(
-            root,
+        self.action_button = ttk.Button(
+            self.card_frame,
             text="Realizar foto",
-            font=("Helvetica", 14, "bold"),
-            width=18,
-            height=2,
+            style="Primary.TButton",
             command=self.start_session,
         )
-        self.action_button.pack(pady=20)
+        self.action_button.pack(pady=18, ipadx=20, ipady=8)
 
         self.photo_count = 0
         self.photos: list[str] = []
@@ -42,16 +71,19 @@ class PhotomatonApp:
         self.photo_count = 0
         self.photos = []
         self.action_button.config(state=tk.DISABLED)
+        self.countdown_label.config(text="")
         self.status_label.config(text="Encendiendo cámara...")
         self.root.after(500, lambda: self.run_countdown(5))
 
     def run_countdown(self, remaining: int) -> None:
         if remaining > 0:
+            self.countdown_label.config(text=str(remaining))
             self.status_label.config(
                 text=f"Primera foto en {remaining} segundo{'s' if remaining != 1 else ''}."
             )
             self.root.after(1000, lambda: self.run_countdown(remaining - 1))
         else:
+            self.countdown_label.config(text="¡Flash!")
             self.capture_photo()
 
     def capture_photo(self) -> None:
@@ -59,6 +91,7 @@ class PhotomatonApp:
         timestamp = time.strftime("%H:%M:%S")
         self.photos.append(f"Foto {self.photo_count} tomada a las {timestamp}.")
         self.status_label.config(text=f"Foto {self.photo_count} tomada.")
+        self.countdown_label.config(text=f"{self.photo_count}/3")
 
         if self.photo_count < 3:
             self.root.after(1000, self.prepare_next_photo)
@@ -67,9 +100,11 @@ class PhotomatonApp:
 
     def prepare_next_photo(self) -> None:
         self.status_label.config(text="Siguiente foto en 2 segundos...")
+        self.countdown_label.config(text="2")
         self.root.after(2000, self.capture_photo)
 
     def ask_phone_number(self) -> None:
+        self.countdown_label.config(text="")
         phone_number = simpledialog.askstring(
             "Número de teléfono",
             "Introduce tu número para enviar las fotos por WhatsApp:",
@@ -101,23 +136,33 @@ class PhotomatonApp:
         self.status_label.config(text="Enviando fotos a la pantalla...")
         preview = tk.Toplevel(self.root)
         preview.title("Vista previa")
-        preview.geometry("420x240")
+        preview.geometry("460x280")
         preview.resizable(False, False)
+        preview.configure(bg="#f8f5f2")
 
         tk.Label(
             preview,
             text="Fotos capturadas",
             font=("Helvetica", 14, "bold"),
+            bg="#f8f5f2",
+            fg="#3a2f2f",
         ).pack(pady=10)
 
         for photo in self.photos:
-            tk.Label(preview, text=photo, font=("Helvetica", 10)).pack(anchor="w", padx=16)
+            tk.Label(
+                preview,
+                text=photo,
+                font=("Helvetica", 10),
+                bg="#f8f5f2",
+                fg="#4a3f38",
+            ).pack(anchor="w", padx=20)
 
-        tk.Button(
+        ttk.Button(
             preview,
             text="Cerrar",
+            style="Secondary.TButton",
             command=lambda: self.close_preview(preview),
-        ).pack(pady=16)
+        ).pack(pady=18, ipadx=12, ipady=4)
 
     def close_preview(self, preview: tk.Toplevel) -> None:
         preview.destroy()
@@ -125,7 +170,37 @@ class PhotomatonApp:
 
     def reset_to_start(self, message: str) -> None:
         self.status_label.config(text=message)
+        self.countdown_label.config(text="")
         self.action_button.config(state=tk.NORMAL)
+
+    def _configure_styles(self) -> None:
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure(
+            "Primary.TButton",
+            font=("Helvetica", 12, "bold"),
+            foreground="#ffffff",
+            background="#c86f3d",
+            padding=10,
+        )
+        style.map(
+            "Primary.TButton",
+            background=[("active", "#b45f32"), ("disabled", "#d9c3b5")],
+            foreground=[("disabled", "#f2eae4")],
+        )
+
+        style.configure(
+            "Secondary.TButton",
+            font=("Helvetica", 10, "bold"),
+            foreground="#ffffff",
+            background="#7a6759",
+            padding=6,
+        )
+        style.map(
+            "Secondary.TButton",
+            background=[("active", "#68584c")],
+        )
 
 
 def main() -> None:
