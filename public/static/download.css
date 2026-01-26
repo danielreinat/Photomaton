@@ -42,8 +42,11 @@ body {
   gap: 8px;
 }
 
-.download header p {
-  color: var(--muted);
+.download-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .download-list {
