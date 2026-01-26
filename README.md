@@ -1,6 +1,6 @@
 # Photomaton
 
-Aplicación en Python con interfaz gráfica para simular el flujo de un photomaton.
+Aplicación en Python con interfaz web local para simular el flujo de un photomaton.
 
 ## Flujo de la aplicación
 
@@ -12,21 +12,19 @@ Aplicación en Python con interfaz gráfica para simular el flujo de un photomat
 ## Requisitos
 
 - Python 3.10 o superior.
-- `tkinter` disponible (suele venir instalado en Windows/macOS y en algunas distros Linux).
+- Python incluye la librería estándar necesaria para levantar el servidor local (no requiere Flask).
 
-## Instalación y ejecución
+## Instalación
 
-1. Abre una terminal y ve a la carpeta del proyecto:
+No es necesario instalar dependencias externas para esta demo.
 
-```bash
-cd /ruta/al/proyecto/Photomaton
-```
-
-2. Ejecuta la aplicación:
+## Ejecución
 
 ```bash
-python main.py
+python app.py
 ```
+
+Después abre el navegador en `http://localhost:5000`.
 
 ## Notas
 
