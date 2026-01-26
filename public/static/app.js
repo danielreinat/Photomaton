@@ -64,6 +64,13 @@ const updateCountdown = (value) => {
   countdown.textContent = value;
 };
 
+const PHOTO_QUALITY = 0.98;
+const PHOTO_CONSTRAINTS = {
+  facingMode: "user",
+  width: { ideal: 1920 },
+  height: { ideal: 1080 },
+};
+
 const capturePhoto = () => {
   photoCount += 1;
   if (cameraFeed.videoWidth && cameraFeed.videoHeight) {
@@ -72,7 +79,7 @@ const capturePhoto = () => {
     canvasContext.drawImage(cameraFeed, 0, 0);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
-    photoDataUrls.push(photoCanvas.toDataURL("image/jpeg", 0.9));
+    photoDataUrls.push(photoCanvas.toDataURL("image/jpeg", PHOTO_QUALITY));
   }
   const now = new Date();
   const timestamp = now.toLocaleTimeString("es-ES", {
@@ -164,7 +171,7 @@ const startCamera = async () => {
   }
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" },
+      video: PHOTO_CONSTRAINTS,
       audio: false,
     });
     cameraFeed.srcObject = cameraStream;
