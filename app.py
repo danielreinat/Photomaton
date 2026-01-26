@@ -45,30 +45,12 @@ def _public_base_url(headers) -> str | None:
     return f"{scheme}://{host}"
 
 
-def _normalize_phone(phone: str) -> str | None:
-    cleaned = re.sub(r"[\s().-]", "", phone)
-    if cleaned.startswith("00"):
-        cleaned = f"+{cleaned[2:]}"
-    if not cleaned:
-        return None
-    if cleaned.startswith("+"):
-        digits = cleaned[1:]
-    else:
-        digits = cleaned
-    if not digits.isdigit() or len(digits) < 8:
-        return None
-    return cleaned
-
 
 def _send_twilio_sms(phone: str, media_url: str) -> tuple[bool, str]:
     account_sid = os.getenv("TWILIO_ACCOUNT_SID")
     auth_token = os.getenv("TWILIO_AUTH_TOKEN")
     from_number = os.getenv("TWILIO_FROM_NUMBER")
-    dry_run = os.getenv("TWILIO_DRY_RUN", "").lower() in {"1", "true", "yes"}
-    if not account_sid or not auth_token or not from_number:
-        return False, "Faltan credenciales de Twilio en variables de entorno."
-    if dry_run:
-        return True, "Envío simulado (TWILIO_DRY_RUN activo)."
+
 
     message_body = os.getenv(
         "TWILIO_MESSAGE_BODY",
@@ -90,16 +72,7 @@ def _send_twilio_sms(phone: str, media_url: str) -> tuple[bool, str]:
         url,
         data=payload,
         method="POST",
-        headers={
-            "Authorization": f"Basic {auth}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            if response.status in {200, 201}:
-                return True, "SMS enviado correctamente."
-            return False, "No se pudo enviar el SMS."
+
     except urllib.error.HTTPError as error:
         try:
             error_payload = error.read().decode("utf-8")
@@ -133,8 +106,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             _send_json(self, {"error": "JSON inválido."}, status=400)
             return
 
-        raw_phone = str(payload.get("phone", "")).strip()
-        phone = _normalize_phone(raw_phone)
+
         image_data_url = payload.get("imageDataUrl")
         if not phone or not image_data_url:
             _send_json(
@@ -160,12 +132,6 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             return
 
         media_url = f"{base_url}{image_path}"
-        success, message = _send_twilio_sms(phone, media_url)
-        if not success:
-            _send_json(self, {"error": message}, status=502)
-            return
-
-        _send_json(self, {"status": "ok", "message": message})
 
 
 def main() -> None:

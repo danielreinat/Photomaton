@@ -154,8 +154,7 @@ phoneSubmit.addEventListener("click", async () => {
       throw new Error(payload.error || "No se pudo enviar el SMS.");
     }
     statusLabel.textContent = "SMS enviado correctamente.";
-    whatsappHelper.textContent =
-      payload.message || "Foto enviada. ¡Gracias por participar!";
+
   } catch (error) {
     statusLabel.textContent =
       "No se pudo enviar el SMS. Revisa los datos e inténtalo de nuevo.";
