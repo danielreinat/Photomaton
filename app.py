@@ -2,12 +2,12 @@ from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from pathlib import Path
 import base64
+import html
 import json
 import os
 import re
 import uuid
 import urllib.parse
-import urllib.request
 
 
 def _send_json(handler: SimpleHTTPRequestHandler, payload: dict, status: int = 200) -> None:
@@ -45,56 +45,100 @@ def _public_base_url(headers) -> str | None:
     return f"{scheme}://{host}"
 
 
-def _send_twilio_sms(phone: str, media_url: str) -> tuple[bool, str]:
-    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-    from_number = os.getenv("TWILIO_FROM_NUMBER")
-    if not account_sid or not auth_token or not from_number:
-        return False, "Faltan credenciales de Twilio en variables de entorno."
+def _save_session(image_paths: list[str], root: Path) -> str:
+    sessions_dir = root / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    session_id = uuid.uuid4().hex
+    payload = {"images": image_paths}
+    session_path = sessions_dir / f"{session_id}.json"
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+    return session_id
 
-    message_body = os.getenv(
-        "TWILIO_MESSAGE_BODY",
-        "¡Hola! Aquí tienes tu foto del photomaton.",
-    )
-    payload = urllib.parse.urlencode(
-        {
-            "To": phone,
-            "From": from_number,
-            "Body": message_body,
-            "MediaUrl": media_url,
-        }
-    ).encode("utf-8")
-    url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
-    auth = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode(
-        "utf-8"
-    )
-    request = urllib.request.Request(
-        url,
-        data=payload,
-        method="POST",
-        headers={"Authorization": f"Basic {auth}"},
-    )
+
+def _load_session(session_id: str, root: Path) -> dict | None:
+    session_path = root / "sessions" / f"{session_id}.json"
+    if not session_path.exists():
+        return None
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            return response.status in {200, 201}, ""
-    except urllib.error.HTTPError as error:
-        try:
-            error_payload = error.read().decode("utf-8")
-        except Exception:
-            error_payload = "Error desconocido al enviar el SMS."
-        return False, error_payload
-    except urllib.error.URLError:
-        return False, "No se pudo conectar con Twilio."
+        return json.loads(session_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+
+def _render_download_page(session_id: str, images: list[str]) -> str:
+    items_html = []
+    for index, image_path in enumerate(images, start=1):
+        safe_path = html.escape(image_path, quote=True)
+        filename = Path(image_path).name
+        safe_filename = html.escape(filename, quote=True)
+        items_html.append(
+            f"""
+            <li class="download-item">
+              <img src="{safe_path}" alt="Foto {index}" />
+              <div>
+                <p>Foto {index}</p>
+                <a class="button" href="{safe_path}" download="{safe_filename}">
+                  Descargar
+                </a>
+              </div>
+            </li>
+            """
+        )
+    items = "\n".join(items_html)
+    safe_session = html.escape(session_id, quote=True)
+    return f"""<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Descarga tus fotos</title>
+    <link rel="stylesheet" href="/static/download.css" />
+  </head>
+  <body>
+    <main class="download">
+      <header>
+        <h1>Descarga tus fotos</h1>
+        <p>Sesión {safe_session}</p>
+      </header>
+      <ul class="download-list">
+        {items}
+      </ul>
+      <p class="helper">Puedes guardar cada foto en tu móvil tocando “Descargar”.</p>
+    </main>
+  </body>
+</html>
+"""
 
 
 class PhotomatonHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path in {"", "/"}:
             self.path = "/index.html"
+            super().do_GET()
+            return
+
+        if self.path.startswith("/download/"):
+            session_id = self.path.split("/download/")[-1].strip()
+            if not session_id:
+                self.send_error(404)
+                return
+            session = _load_session(session_id, Path(self.directory))
+            if not session or not session.get("images"):
+                self.send_error(404)
+                return
+            html_payload = _render_download_page(session_id, session["images"])
+            encoded = html_payload.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
         super().do_GET()
 
     def do_POST(self) -> None:
-        if self.path != "/api/send-sms":
+        if self.path != "/api/create-session":
             self.send_error(404)
             return
 
@@ -110,14 +154,9 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             _send_json(self, {"error": "JSON inválido."}, status=400)
             return
 
-        phone = str(payload.get("phone", "")).strip()
-        image_data_url = payload.get("imageDataUrl")
-        if not phone or not image_data_url:
-            _send_json(
-                self,
-                {"error": "Faltan el número de teléfono o la imagen."},
-                status=400,
-            )
+        images = payload.get("images")
+        if not isinstance(images, list) or not images:
+            _send_json(self, {"error": "Faltan las imágenes."}, status=400)
             return
 
         base_url = _public_base_url(self.headers)
@@ -129,19 +168,17 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             )
             return
 
-        try:
-            image_path = _save_data_url(image_data_url, Path(self.directory))
-        except ValueError as error:
-            _send_json(self, {"error": str(error)}, status=400)
-            return
+        image_paths = []
+        for image_data_url in images:
+            try:
+                image_paths.append(_save_data_url(image_data_url, Path(self.directory)))
+            except ValueError as error:
+                _send_json(self, {"error": str(error)}, status=400)
+                return
 
-        media_url = f"{base_url}{image_path}"
-        success, error_message = _send_twilio_sms(phone, media_url)
-        if not success:
-            _send_json(self, {"error": error_message}, status=502)
-            return
-
-        _send_json(self, {"status": "ok"})
+        session_id = _save_session(image_paths, Path(self.directory))
+        download_url = f"{base_url}/download/{session_id}"
+        _send_json(self, {"downloadUrl": download_url})
 
 
 def main() -> None:

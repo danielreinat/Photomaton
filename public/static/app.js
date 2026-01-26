@@ -5,20 +5,23 @@ const statusLabel = document.getElementById("status");
 const cameraFeed = document.getElementById("cameraFeed");
 const photoCanvas = document.getElementById("photoCanvas");
 const canvasContext = photoCanvas.getContext("2d");
-const phonePanel = document.getElementById("phonePanel");
-const screenPanel = document.getElementById("screenPanel");
+const qrPanel = document.getElementById("qrPanel");
 const previewPanel = document.getElementById("previewPanel");
-const phoneInput = document.getElementById("phoneInput");
-const phoneSubmit = document.getElementById("phoneSubmit");
-const whatsappHelper = document.getElementById("whatsappHelper");
-const showYes = document.getElementById("showYes");
-const showNo = document.getElementById("showNo");
+const qrImage = document.getElementById("qrImage");
+const downloadLink = document.getElementById("downloadLink");
+const qrStatus = document.getElementById("qrStatus");
+const showPreview = document.getElementById("showPreview");
+const retryQr = document.getElementById("retryQr");
 const photoList = document.getElementById("photoList");
 const closePreview = document.getElementById("closePreview");
 
+const QR_PLACEHOLDER =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%25' height='100%25' fill='%2310140c'/><text x='50%25' y='50%25' fill='%23a3adb8' font-family='Poppins, sans-serif' font-size='16' dominant-baseline='middle' text-anchor='middle'>QR listo en breve</text></svg>";
+
 let photoCount = 0;
 let photos = [];
-let lastPhotoDataUrl = null;
+let photoDataUrls = [];
+let downloadUrl = null;
 let countdownTimer = null;
 let cameraStream = null;
 
@@ -33,10 +36,12 @@ const toggleCameraPreview = (show) => {
 };
 
 const resetPanels = () => {
-  phonePanel.classList.add("hidden");
-  screenPanel.classList.add("hidden");
+  qrPanel.classList.add("hidden");
   previewPanel.classList.add("hidden");
-  whatsappHelper.textContent = "";
+  qrStatus.textContent = "";
+  retryQr.classList.add("hidden");
+  downloadLink.classList.add("hidden");
+  qrImage.src = QR_PLACEHOLDER;
 };
 
 const resetState = () => {
@@ -45,7 +50,8 @@ const resetState = () => {
   }
   photoCount = 0;
   photos = [];
-  lastPhotoDataUrl = null;
+  photoDataUrls = [];
+  downloadUrl = null;
   toggleCameraPreview(false);
   countdown.textContent = "Listo";
   statusLabel.textContent = "Pulsa “Realizar foto” para comenzar.";
@@ -66,7 +72,7 @@ const capturePhoto = () => {
     canvasContext.drawImage(cameraFeed, 0, 0);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
-    lastPhotoDataUrl = photoCanvas.toDataURL("image/jpeg", 0.9);
+    photoDataUrls.push(photoCanvas.toDataURL("image/jpeg", 0.9));
   }
   const now = new Date();
   const timestamp = now.toLocaleTimeString("es-ES", {
@@ -89,9 +95,10 @@ const capturePhoto = () => {
   } else {
     countdownTimer = setTimeout(() => {
       resetPanels();
-      phonePanel.classList.remove("hidden");
-      statusLabel.textContent = "Introduce tu número para enviar las fotos.";
+      qrPanel.classList.remove("hidden");
+      statusLabel.textContent = "Generando tu enlace de descarga...";
       updateCountdown("✓");
+      createDownloadSession();
     }, 800);
   }
 };
@@ -128,44 +135,9 @@ const startSession = async () => {
 startButton.addEventListener("click", startSession);
 resetButton.addEventListener("click", resetState);
 
-phoneSubmit.addEventListener("click", async () => {
-  const phone = phoneInput.value.trim();
-  if (!phone) {
-    statusLabel.textContent = "Necesitamos un número válido para enviar las fotos.";
-    return;
-  }
-  if (!lastPhotoDataUrl) {
-    statusLabel.textContent = "No hay ninguna foto para enviar todavía.";
-    return;
-  }
-  statusLabel.textContent = `Enviando foto a ${phone} por SMS...`;
+const renderPreview = () => {
   resetPanels();
-  screenPanel.classList.remove("hidden");
-  whatsappHelper.textContent = "Procesando envío de la foto...";
-
-  try {
-    const response = await fetch("/api/send-sms", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, imageDataUrl: lastPhotoDataUrl }),
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error || "No se pudo enviar el SMS.");
-    }
-    statusLabel.textContent = "SMS enviado correctamente.";
-    whatsappHelper.textContent = "Foto enviada. ¡Gracias por participar!";
-  } catch (error) {
-    statusLabel.textContent =
-      "No se pudo enviar el SMS. Revisa los datos e inténtalo de nuevo.";
-    whatsappHelper.textContent =
-      error instanceof Error ? error.message : "Error desconocido.";
-  }
-});
-
-showYes.addEventListener("click", () => {
-  resetPanels();
-  statusLabel.textContent = "Enviando fotos a la pantalla...";
+  statusLabel.textContent = "Resumen de la sesión.";
   photoList.innerHTML = "";
   photos.forEach((photo) => {
     const item = document.createElement("li");
@@ -173,12 +145,7 @@ showYes.addEventListener("click", () => {
     photoList.appendChild(item);
   });
   previewPanel.classList.remove("hidden");
-});
-
-showNo.addEventListener("click", () => {
-  statusLabel.textContent = "Sesión finalizada. ¡Gracias!";
-  resetState();
-});
+};
 
 closePreview.addEventListener("click", () => {
   statusLabel.textContent = "Sesión finalizada. ¡Gracias!";
@@ -202,5 +169,43 @@ const startCamera = async () => {
     startButton.disabled = true;
   }
 };
+
+const createDownloadSession = async () => {
+  if (!photoDataUrls.length) {
+    qrStatus.textContent = "No hay fotos disponibles para descargar.";
+    return;
+  }
+  qrStatus.textContent = "Generando enlace seguro...";
+  retryQr.classList.add("hidden");
+  downloadLink.classList.add("hidden");
+  try {
+    const response = await fetch("/api/create-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images: photoDataUrls }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || "No se pudo generar el enlace.");
+    }
+    downloadUrl = payload.downloadUrl;
+    const encodedUrl = encodeURIComponent(downloadUrl);
+    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
+    downloadLink.href = downloadUrl;
+    downloadLink.textContent = "Abrir enlace de descarga";
+    downloadLink.classList.remove("hidden");
+    qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
+    statusLabel.textContent = "Enlace de descarga preparado.";
+  } catch (error) {
+    statusLabel.textContent =
+      "No se pudo generar el QR. Pulsa reintentar.";
+    qrStatus.textContent =
+      error instanceof Error ? error.message : "Error desconocido.";
+    retryQr.classList.remove("hidden");
+  }
+};
+
+showPreview.addEventListener("click", renderPreview);
+retryQr.addEventListener("click", createDownloadSession);
 
 resetState();
