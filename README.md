@@ -68,6 +68,16 @@ El QR usará esa URL pública para que el móvil abra el enlace de descarga.
 - `app.py`: servidor HTTP y lógica de sesiones de descarga.
 - `public/`: interfaz web, estilos y scripts.
 
+### Ventana de escritorio (opcional)
+
+Si prefieres abrir la app en una ventana local en lugar del navegador, instala
+`pywebview` y ejecuta:
+
+```bash
+pip install pywebview
+python app.py --window
+```
+
 ## Notas
 
 - La cámara se maneja desde el navegador, así que revisa permisos si no inicia.

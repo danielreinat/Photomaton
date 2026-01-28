@@ -1,11 +1,13 @@
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from pathlib import Path
+import argparse
 import base64
 import html
 import json
 import os
 import re
+import threading
 import uuid
 import urllib.parse
 
@@ -230,12 +232,53 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         _send_json(self, {"downloadUrl": download_url})
 
 
-def main() -> None:
-    root = Path(__file__).parent / "public"
+def _create_server(root: Path) -> TCPServer:
     handler = lambda *args, **kwargs: PhotomatonHandler(
         *args, directory=str(root), **kwargs
     )
-    with TCPServer(("", 5001), handler) as httpd:
+    return TCPServer(("", 5001), handler)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Photomaton: servidor local con opción de ventana de escritorio."
+    )
+    parser.add_argument(
+        "--window",
+        action="store_true",
+        help="Abre una ventana de escritorio usando pywebview.",
+    )
+    args = parser.parse_args()
+
+    root = Path(__file__).parent / "public"
+    httpd = _create_server(root)
+    if args.window:
+        try:
+            import webview
+        except ImportError:
+            print(
+                "pywebview no está instalado. Ejecuta: pip install pywebview y vuelve a intentarlo."
+            )
+            httpd.server_close()
+            return
+
+        server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        server_thread.start()
+        window = webview.create_window(
+            "Photomaton", "http://localhost:5001", min_size=(1024, 720)
+        )
+
+        try:
+            window.events.closed += lambda: httpd.shutdown()
+        except AttributeError:
+            pass
+
+        print("Ventana lista en http://localhost:5001")
+        webview.start()
+        httpd.server_close()
+        return
+
+    with httpd:
         print("Servidor listo en http://localhost:5001")
         httpd.serve_forever()
 
