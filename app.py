@@ -5,6 +5,7 @@ import base64
 import html
 import json
 import os
+import socket
 import re
 import uuid
 import urllib.parse
@@ -39,11 +40,23 @@ def _is_localhost(host: str) -> bool:
     return hostname in {"localhost", "127.0.0.1"}
 
 
+def _detect_local_ip() -> str:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+            udp_socket.connect(("8.8.8.8", 80))
+            local_ip = udp_socket.getsockname()[0]
+            if local_ip:
+                return local_ip
+    except OSError:
+        pass
+    return "127.0.0.1"
+
+
 def _default_public_base_url() -> str:
     configured = os.getenv("PUBLIC_BASE_URL")
     if configured:
         return configured.rstrip("/")
-    public_ip = os.getenv("PUBLIC_IP", "192.168.1.161")
+    public_ip = os.getenv("PUBLIC_IP", _detect_local_ip())
     public_port = os.getenv("PUBLIC_PORT", "5001")
     return f"http://{public_ip}:{public_port}"
 
