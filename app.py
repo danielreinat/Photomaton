@@ -3,12 +3,14 @@ from socketserver import TCPServer
 from pathlib import Path
 import base64
 import html
+import io
 import json
 import os
 import socket
 import re
 import uuid
 import urllib.parse
+import zipfile
 
 
 def _send_json(handler: SimpleHTTPRequestHandler, payload: dict, status: int = 200) -> None:
@@ -92,14 +94,11 @@ def _load_session(session_id: str, root: Path) -> dict | None:
         return None
 
 
-def _render_download_page(
-    session_id: str, images: list[str], base_url: str | None
-) -> str:
+def _render_download_page(session_id: str, images: list[str], base_url: str | None) -> str:
     asset_prefix = f"{base_url}/static" if base_url else "/static"
     items_html = []
     for index, image_path in enumerate(images, start=1):
-        file_url = f"{base_url}{image_path}" if base_url else image_path
-        safe_path = html.escape(file_url, quote=True)
+        safe_path = html.escape(image_path, quote=True)
         filename = Path(image_path).name
         safe_filename = html.escape(filename, quote=True)
         items_html.append(
@@ -129,7 +128,9 @@ def _render_download_page(
       <header>
         <h1>Descarga tus fotos</h1>
         <div class="download-actions">
-          <button class="button" id="downloadAll" type="button">Descargar todas</button>
+          <a class="button" id="downloadAll" href="/download-all/{session_id}">
+            Descargar todas
+          </a>
         </div>
       </header>
       <ul class="download-list">
@@ -139,23 +140,8 @@ def _render_download_page(
     </main>
     <script>
       const downloadAllButton = document.getElementById("downloadAll");
-      const downloadLinks = Array.from(
-        document.querySelectorAll(".download-item a")
-      );
-
-      const triggerDownload = (link) => {{
-        const anchor = document.createElement("a");
-        anchor.href = link.href;
-        anchor.download = link.getAttribute("download") || "";
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-      }};
-
-      downloadAllButton?.addEventListener("click", () => {{
-        downloadLinks.forEach((link, index) => {{
-          setTimeout(() => triggerDownload(link), index * 300);
-        }});
+      downloadAllButton?.addEventListener("click", (event) => {{
+        downloadAllButton.setAttribute("aria-busy", "true");
       }});
     </script>
   </body>
@@ -189,6 +175,34 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
+            return
+
+        if self.path.startswith("/download-all/"):
+            session_id = self.path.split("/download-all/")[-1].strip()
+            if not session_id:
+                self.send_error(404)
+                return
+            session = _load_session(session_id, Path(self.directory))
+            if not session or not session.get("images"):
+                self.send_error(404)
+                return
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+                for image_path in session["images"]:
+                    file_path = Path(self.directory) / image_path.lstrip("/")
+                    if not file_path.exists():
+                        continue
+                    zip_file.write(file_path, arcname=file_path.name)
+            zip_payload = zip_buffer.getvalue()
+            filename = f"photomaton-{session_id}.zip"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header(
+                "Content-Disposition", f'attachment; filename="{filename}"'
+            )
+            self.send_header("Content-Length", str(len(zip_payload)))
+            self.end_headers()
+            self.wfile.write(zip_payload)
             return
 
         super().do_GET()
