@@ -24,6 +24,7 @@ let cameraStream = null;
 let publishChoice = null;
 let qrScriptPromise = null;
 
+
 const renderQrCode = (url) => {
   if (typeof window.qrcode !== "function") {
     return false;
@@ -48,7 +49,7 @@ const ensureQrScript = () => {
   }
   qrScriptPromise = new Promise((resolve) => {
     const script = document.createElement("script");
-    script.src = "static/qrcode-generator.js";
+
     script.async = true;
     script.onload = () => resolve(typeof window.qrcode === "function");
     script.onerror = () => resolve(false);
