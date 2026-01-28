@@ -83,7 +83,7 @@ const resetPanels = () => {
   qrStatus.textContent = "";
   retryQr.classList.add("hidden");
   qrImage.src = QR_PLACEHOLDER;
-  expectedQrSrc = null;
+
   setQrResult("QR pendiente de generar.");
 };
 
@@ -234,7 +234,7 @@ const createDownloadSession = async () => {
   }
   qrStatus.textContent = "Generando enlace seguro...";
   setQrResult("Generando QR...");
-  expectedQrSrc = null;
+
   retryQr.classList.add("hidden");
   try {
     const response = await fetch("/api/create-session", {
@@ -273,18 +273,14 @@ qrImage.addEventListener("load", () => {
   if (!downloadUrl) {
     return;
   }
-  if (!expectedQrSrc || qrImage.src !== expectedQrSrc) {
-    return;
-  }
+
   setQrResult("QR generado y visible.", "success");
 });
 qrImage.addEventListener("error", () => {
   if (!downloadUrl) {
     return;
   }
-  if (!expectedQrSrc || qrImage.src !== expectedQrSrc) {
-    return;
-  }
+
   setQrResult("El QR no se pudo mostrar.", "error");
   retryQr.classList.remove("hidden");
 });
