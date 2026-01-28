@@ -24,13 +24,6 @@ let cameraStream = null;
 let publishChoice = null;
 let qrScriptPromise = null;
 
-const getStaticAssetUrl = (filename) => {
-  const appScript = document.querySelector('script[src*="app.js"]');
-  if (appScript && appScript.src) {
-    return new URL(filename, appScript.src).toString();
-  }
-  return `static/${filename}`;
-};
 
 const renderQrCode = (url) => {
   if (typeof window.qrcode !== "function") {
@@ -56,7 +49,7 @@ const ensureQrScript = () => {
   }
   qrScriptPromise = new Promise((resolve) => {
     const script = document.createElement("script");
-    script.src = getStaticAssetUrl("qrcode-generator.js");
+
     script.async = true;
     script.onload = () => resolve(typeof window.qrcode === "function");
     script.onerror = () => resolve(false);
