@@ -12,11 +12,6 @@ const qrPanel = document.getElementById("qrPanel");
 const qrImage = document.getElementById("qrImage");
 const qrStatus = document.getElementById("qrStatus");
 const retryQr = document.getElementById("retryQr");
-const downloadLinkPanel = document.getElementById("downloadLinkPanel");
-const downloadLinkInput = document.getElementById("downloadLink");
-const copyLinkButton = document.getElementById("copyLink");
-const openLinkButton = document.getElementById("openLink");
-const shareLinkButton = document.getElementById("shareLink");
 
 const QR_PLACEHOLDER =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%25' height='100%25' fill='%2310140c'/><text x='50%25' y='50%25' fill='%23a3adb8' font-family='Poppins, sans-serif' font-size='16' dominant-baseline='middle' text-anchor='middle'>QR listo en breve</text></svg>";
@@ -78,8 +73,6 @@ const resetPanels = () => {
   qrPanel.classList.add("hidden");
   qrStatus.textContent = "";
   retryQr.classList.add("hidden");
-  downloadLinkPanel.classList.add("hidden");
-  downloadLinkInput.value = "";
   qrImage.src = QR_PLACEHOLDER;
 };
 
@@ -229,7 +222,6 @@ const createDownloadSession = async () => {
   }
   qrStatus.textContent = "Generando enlace seguro...";
   retryQr.classList.add("hidden");
-  downloadLinkPanel.classList.add("hidden");
   try {
     const response = await fetch("/api/create-session", {
       method: "POST",
@@ -241,20 +233,10 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    downloadLinkInput.value = downloadUrl;
-    downloadLinkPanel.classList.remove("hidden");
-    if (!navigator.share) {
-      shareLinkButton.classList.add("hidden");
-    } else {
-      shareLinkButton.classList.remove("hidden");
-    }
     const qrReady = await ensureQrScript();
     if (!qrReady || !renderQrCode(downloadUrl)) {
-      qrImage.src = QR_PLACEHOLDER;
-      qrStatus.textContent =
-        "QR no disponible. Usa el enlace directo para abrir la descarga.";
-      statusLabel.textContent = "Enlace de descarga preparado.";
-      return;
+      const encodedUrl = encodeURIComponent(downloadUrl);
+      qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
     }
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
@@ -268,49 +250,5 @@ const createDownloadSession = async () => {
 };
 
 retryQr.addEventListener("click", createDownloadSession);
-
-const copyDownloadLink = async () => {
-  if (!downloadUrl) {
-    return;
-  }
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(downloadUrl);
-    } else {
-      downloadLinkInput.focus();
-      downloadLinkInput.select();
-      document.execCommand("copy");
-    }
-    qrStatus.textContent = "Enlace copiado al portapapeles.";
-  } catch (error) {
-    qrStatus.textContent = "No se pudo copiar el enlace.";
-  }
-};
-
-const openDownloadLink = () => {
-  if (!downloadUrl) {
-    return;
-  }
-  window.open(downloadUrl, "_blank", "noopener,noreferrer");
-};
-
-const shareDownloadLink = async () => {
-  if (!downloadUrl || !navigator.share) {
-    return;
-  }
-  try {
-    await navigator.share({
-      title: "Descarga tus fotos",
-      text: "Aquí tienes el enlace para descargar tus fotos.",
-      url: downloadUrl,
-    });
-  } catch (error) {
-    qrStatus.textContent = "No se pudo abrir el diálogo para compartir.";
-  }
-};
-
-copyLinkButton.addEventListener("click", copyDownloadLink);
-openLinkButton.addEventListener("click", openDownloadLink);
-shareLinkButton.addEventListener("click", shareDownloadLink);
 
 resetState();
