@@ -238,6 +238,30 @@ body {
   gap: 12px;
 }
 
+.download-link {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 14, 18, 0.5);
+}
+
+.download-link label {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.download-link input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(6, 8, 10, 0.6);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
 input {
   flex: 1;
   min-width: 220px;
