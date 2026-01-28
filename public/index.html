@@ -31,6 +31,15 @@
       </div>
     </section>
 
+    <section class="panel hidden" id="publishPanel">
+      <h2>¿Publicar en redes sociales?</h2>
+      <p>Indícanos si deseas que tus fotos se compartan en nuestras redes.</p>
+      <div class="actions">
+        <button id="publishYes" class="button button--primary">Sí, publicar</button>
+        <button id="publishNo" class="button button--ghost">No, gracias</button>
+      </div>
+    </section>
+
     <section class="panel hidden" id="qrPanel">
       <h2>Descarga tus fotos</h2>
       <p>
@@ -41,25 +50,13 @@
       <div class="qr-grid">
         <div class="qr-card">
           <img id="qrImage" src="" alt="Código QR de descarga" />
-          <a id="downloadLink" class="button button--ghost hidden" href="#" target="_blank" rel="noreferrer">
-            Abrir enlace de descarga
-          </a>
         </div>
         <div class="qr-meta">
           <p class="helper-text" id="qrStatus">Generando enlace seguro...</p>
           <div class="actions">
-            <button id="showPreview" class="button button--ghost">Ver resumen</button>
             <button id="retryQr" class="button button--primary hidden">Reintentar</button>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="panel hidden" id="previewPanel">
-      <h2>Fotos capturadas</h2>
-      <ul id="photoList" class="photo-list"></ul>
-      <div class="actions">
-        <button id="closePreview" class="button button--ghost">Cerrar</button>
       </div>
     </section>
   </main>

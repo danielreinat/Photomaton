@@ -5,25 +5,23 @@ const statusLabel = document.getElementById("status");
 const cameraFeed = document.getElementById("cameraFeed");
 const photoCanvas = document.getElementById("photoCanvas");
 const canvasContext = photoCanvas.getContext("2d");
+const publishPanel = document.getElementById("publishPanel");
+const publishYes = document.getElementById("publishYes");
+const publishNo = document.getElementById("publishNo");
 const qrPanel = document.getElementById("qrPanel");
-const previewPanel = document.getElementById("previewPanel");
 const qrImage = document.getElementById("qrImage");
-const downloadLink = document.getElementById("downloadLink");
 const qrStatus = document.getElementById("qrStatus");
-const showPreview = document.getElementById("showPreview");
 const retryQr = document.getElementById("retryQr");
-const photoList = document.getElementById("photoList");
-const closePreview = document.getElementById("closePreview");
 
 const QR_PLACEHOLDER =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%25' height='100%25' fill='%2310140c'/><text x='50%25' y='50%25' fill='%23a3adb8' font-family='Poppins, sans-serif' font-size='16' dominant-baseline='middle' text-anchor='middle'>QR listo en breve</text></svg>";
 
 let photoCount = 0;
-let photos = [];
 let photoDataUrls = [];
 let downloadUrl = null;
 let countdownTimer = null;
 let cameraStream = null;
+let publishChoice = null;
 
 const toggleCameraPreview = (show) => {
   if (show) {
@@ -36,11 +34,10 @@ const toggleCameraPreview = (show) => {
 };
 
 const resetPanels = () => {
+  publishPanel.classList.add("hidden");
   qrPanel.classList.add("hidden");
-  previewPanel.classList.add("hidden");
   qrStatus.textContent = "";
   retryQr.classList.add("hidden");
-  downloadLink.classList.add("hidden");
   qrImage.src = QR_PLACEHOLDER;
 };
 
@@ -49,9 +46,9 @@ const resetState = () => {
     clearTimeout(countdownTimer);
   }
   photoCount = 0;
-  photos = [];
   photoDataUrls = [];
   downloadUrl = null;
+  publishChoice = null;
   toggleCameraPreview(false);
   countdown.textContent = "Listo";
   statusLabel.textContent = "Pulsa “Realizar foto” para comenzar.";
@@ -87,7 +84,6 @@ const capturePhoto = () => {
     minute: "2-digit",
     second: "2-digit",
   });
-  photos.push(`Foto ${photoCount} tomada a las ${timestamp}.`);
   statusLabel.textContent = `Foto ${photoCount} tomada.`;
   updateCountdown(`${photoCount}/3`);
 
@@ -102,10 +98,9 @@ const capturePhoto = () => {
   } else {
     countdownTimer = setTimeout(() => {
       resetPanels();
-      qrPanel.classList.remove("hidden");
-      statusLabel.textContent = "Generando tu enlace de descarga...";
+      publishPanel.classList.remove("hidden");
+      statusLabel.textContent = "¿Quieres publicar las fotos en redes sociales?";
       updateCountdown("✓");
-      createDownloadSession();
     }, 800);
   }
 };
@@ -139,25 +134,19 @@ const startSession = async () => {
   tick();
 };
 
-startButton.addEventListener("click", startSession);
-resetButton.addEventListener("click", resetState);
-
-const renderPreview = () => {
-  resetPanels();
-  statusLabel.textContent = "Resumen de la sesión.";
-  photoList.innerHTML = "";
-  photos.forEach((photo) => {
-    const item = document.createElement("li");
-    item.textContent = photo;
-    photoList.appendChild(item);
-  });
-  previewPanel.classList.remove("hidden");
+const handlePublishChoice = (choice) => {
+  publishChoice = choice;
+  publishPanel.classList.add("hidden");
+  qrPanel.classList.remove("hidden");
+  statusLabel.textContent = "Generando tu enlace de descarga...";
+  updateCountdown("✓");
+  createDownloadSession();
 };
 
-closePreview.addEventListener("click", () => {
-  statusLabel.textContent = "Sesión finalizada. ¡Gracias!";
-  resetState();
-});
+startButton.addEventListener("click", startSession);
+resetButton.addEventListener("click", resetState);
+publishYes.addEventListener("click", () => handlePublishChoice(true));
+publishNo.addEventListener("click", () => handlePublishChoice(false));
 
 const startCamera = async () => {
   if (cameraStream) {
@@ -198,12 +187,11 @@ const createDownloadSession = async () => {
   }
   qrStatus.textContent = "Generando enlace seguro...";
   retryQr.classList.add("hidden");
-  downloadLink.classList.add("hidden");
   try {
     const response = await fetch("/api/create-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ images: photoDataUrls }),
+      body: JSON.stringify({ images: photoDataUrls, publish: publishChoice === true }),
     });
     const payload = await response.json();
     if (!response.ok) {
@@ -212,9 +200,6 @@ const createDownloadSession = async () => {
     downloadUrl = payload.downloadUrl;
     const encodedUrl = encodeURIComponent(downloadUrl);
     qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
-    downloadLink.href = downloadUrl;
-    downloadLink.textContent = "Abrir enlace de descarga";
-    downloadLink.classList.remove("hidden");
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
   } catch (error) {
@@ -226,7 +211,6 @@ const createDownloadSession = async () => {
   }
 };
 
-showPreview.addEventListener("click", renderPreview);
 retryQr.addEventListener("click", createDownloadSession);
 
 resetState();
