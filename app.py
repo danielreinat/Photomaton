@@ -22,19 +22,19 @@ def _send_json(handler: SimpleHTTPRequestHandler, payload: dict, status: int = 2
     handler.wfile.write(response)
 
 
-def _save_data_url(data_url: str, root: Path) -> str:
+def _save_data_url(data_url: str, root: Path, folder: str = "uploads") -> str:
     match = re.match(r"^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$", data_url)
     if not match:
         raise ValueError("Formato de imagen inválido.")
     mime_type, encoded = match.groups()
     extension = mime_type.split("/")[-1]
     image_bytes = base64.b64decode(encoded)
-    uploads_dir = root / "uploads"
+    uploads_dir = root / folder
     uploads_dir.mkdir(parents=True, exist_ok=True)
     filename = f"photomaton-{uuid.uuid4().hex}.{extension}"
     file_path = uploads_dir / filename
     file_path.write_bytes(image_bytes)
-    return f"/uploads/{filename}"
+    return f"/{folder}/{filename}"
 
 
 def _is_localhost(host: str) -> bool:
@@ -228,6 +228,9 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         if not isinstance(images, list) or not images:
             _send_json(self, {"error": "Faltan las imágenes."}, status=400)
             return
+        publish = payload.get("publish", False)
+        if not isinstance(publish, bool):
+            publish = False
 
         base_url = _public_base_url(self.headers)
         if not base_url:
@@ -239,9 +242,14 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             return
 
         image_paths = []
+        target_folder = "publicar" if publish else "uploads"
         for image_data_url in images:
             try:
-                image_paths.append(_save_data_url(image_data_url, Path(self.directory)))
+                image_paths.append(
+                    _save_data_url(
+                        image_data_url, Path(self.directory), folder=target_folder
+                    )
+                )
             except ValueError as error:
                 _send_json(self, {"error": str(error)}, status=400)
                 return
