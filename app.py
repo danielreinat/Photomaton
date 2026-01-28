@@ -34,6 +34,11 @@ def _save_data_url(data_url: str, root: Path) -> str:
     return f"/uploads/{filename}"
 
 
+def _is_localhost(host: str) -> bool:
+    hostname = host.split(":", 1)[0].strip("[]").lower()
+    return hostname in {"localhost", "127.0.0.1"}
+
+
 def _public_base_url(headers) -> str | None:
     configured = os.getenv("PUBLIC_BASE_URL")
     if configured:
@@ -186,6 +191,21 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         images = payload.get("images")
         if not isinstance(images, list) or not images:
             _send_json(self, {"error": "Faltan las imágenes."}, status=400)
+            return
+
+        host = self.headers.get("Host", "")
+        if not os.getenv("PUBLIC_BASE_URL") and host and _is_localhost(host):
+            _send_json(
+                self,
+                {
+                    "error": (
+                        "Estás usando localhost. Abre la app desde la IP local "
+                        "(por ejemplo http://192.168.1.50:5001) o define "
+                        "PUBLIC_BASE_URL para generar un QR accesible desde el móvil."
+                    )
+                },
+                status=400,
+            )
             return
 
         base_url = _public_base_url(self.headers)
