@@ -23,6 +23,21 @@ let countdownTimer = null;
 let cameraStream = null;
 let publishChoice = null;
 
+const renderQrCode = (url) => {
+  if (typeof window.qrcode !== "function") {
+    return false;
+  }
+  try {
+    const qr = window.qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    qrImage.src = qr.createDataURL(10, 2);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 const toggleCameraPreview = (show) => {
   if (show) {
     cameraFeed.classList.remove("hidden");
@@ -198,8 +213,10 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    const encodedUrl = encodeURIComponent(downloadUrl);
-    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
+    if (!renderQrCode(downloadUrl)) {
+      const encodedUrl = encodeURIComponent(downloadUrl);
+      qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
+    }
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
   } catch (error) {
