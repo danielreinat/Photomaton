@@ -233,6 +233,20 @@ body {
   object-fit: cover;
 }
 
+.qr-result {
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.qr-result[data-status="success"] {
+  color: var(--accent);
+}
+
+.qr-result[data-status="error"] {
+  color: #ff7b6b;
+}
+
 .qr-meta {
   display: grid;
   gap: 12px;

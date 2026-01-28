@@ -11,6 +11,7 @@ const publishNo = document.getElementById("publishNo");
 const qrPanel = document.getElementById("qrPanel");
 const qrImage = document.getElementById("qrImage");
 const qrStatus = document.getElementById("qrStatus");
+const qrResult = document.getElementById("qrResult");
 const retryQr = document.getElementById("retryQr");
 
 const QR_PLACEHOLDER =
@@ -23,7 +24,15 @@ let countdownTimer = null;
 let cameraStream = null;
 let publishChoice = null;
 let qrScriptPromise = null;
+let expectedQrSrc = null;
 
+const setQrResult = (message, status = "pending") => {
+  if (!qrResult) {
+    return;
+  }
+  qrResult.textContent = message;
+  qrResult.dataset.status = status;
+};
 
 const renderQrCode = (url) => {
   if (typeof window.qrcode !== "function") {
@@ -74,6 +83,8 @@ const resetPanels = () => {
   qrStatus.textContent = "";
   retryQr.classList.add("hidden");
   qrImage.src = QR_PLACEHOLDER;
+  expectedQrSrc = null;
+  setQrResult("QR pendiente de generar.");
 };
 
 const resetState = () => {
@@ -218,9 +229,12 @@ const startCamera = async () => {
 const createDownloadSession = async () => {
   if (!photoDataUrls.length) {
     qrStatus.textContent = "No hay fotos disponibles para descargar.";
+    setQrResult("QR no generado porque faltan fotos.", "error");
     return;
   }
   qrStatus.textContent = "Generando enlace seguro...";
+  setQrResult("Generando QR...");
+  expectedQrSrc = null;
   retryQr.classList.add("hidden");
   try {
     const response = await fetch("/api/create-session", {
@@ -237,7 +251,11 @@ const createDownloadSession = async () => {
     if (!qrReady || !renderQrCode(downloadUrl)) {
       const encodedUrl = encodeURIComponent(downloadUrl);
       qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
+      setQrResult("QR solicitado vía servicio externo.");
+    } else {
+      setQrResult("QR generado localmente.");
     }
+    expectedQrSrc = qrImage.src;
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
   } catch (error) {
@@ -245,10 +263,30 @@ const createDownloadSession = async () => {
       "No se pudo generar el QR. Pulsa reintentar.";
     qrStatus.textContent =
       error instanceof Error ? error.message : "Error desconocido.";
+    setQrResult("QR no generado.", "error");
     retryQr.classList.remove("hidden");
   }
 };
 
 retryQr.addEventListener("click", createDownloadSession);
+qrImage.addEventListener("load", () => {
+  if (!downloadUrl) {
+    return;
+  }
+  if (!expectedQrSrc || qrImage.src !== expectedQrSrc) {
+    return;
+  }
+  setQrResult("QR generado y visible.", "success");
+});
+qrImage.addEventListener("error", () => {
+  if (!downloadUrl) {
+    return;
+  }
+  if (!expectedQrSrc || qrImage.src !== expectedQrSrc) {
+    return;
+  }
+  setQrResult("El QR no se pudo mostrar.", "error");
+  retryQr.classList.remove("hidden");
+});
 
 resetState();
