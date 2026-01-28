@@ -65,10 +65,14 @@ def _load_session(session_id: str, root: Path) -> dict | None:
         return None
 
 
-def _render_download_page(session_id: str, images: list[str]) -> str:
+def _render_download_page(
+    session_id: str, images: list[str], base_url: str | None
+) -> str:
+    asset_prefix = f"{base_url}/static" if base_url else "/static"
     items_html = []
     for index, image_path in enumerate(images, start=1):
-        safe_path = html.escape(image_path, quote=True)
+        file_url = f"{base_url}{image_path}" if base_url else image_path
+        safe_path = html.escape(file_url, quote=True)
         filename = Path(image_path).name
         safe_filename = html.escape(filename, quote=True)
         items_html.append(
@@ -91,7 +95,7 @@ def _render_download_page(session_id: str, images: list[str]) -> str:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Descarga tus fotos</title>
-    <link rel="stylesheet" href="/static/download.css" />
+    <link rel="stylesheet" href="{asset_prefix}/download.css" />
   </head>
   <body>
     <main class="download">
@@ -148,7 +152,10 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             if not session or not session.get("images"):
                 self.send_error(404)
                 return
-            html_payload = _render_download_page(session_id, session["images"])
+            base_url = _public_base_url(self.headers)
+            html_payload = _render_download_page(
+                session_id, session["images"], base_url
+            )
             encoded = html_payload.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
