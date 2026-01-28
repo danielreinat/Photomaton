@@ -22,6 +22,15 @@ let downloadUrl = null;
 let countdownTimer = null;
 let cameraStream = null;
 let publishChoice = null;
+let qrScriptPromise = null;
+
+const getStaticAssetUrl = (filename) => {
+  const appScript = document.querySelector('script[src*="app.js"]');
+  if (appScript && appScript.src) {
+    return new URL(filename, appScript.src).toString();
+  }
+  return `static/${filename}`;
+};
 
 const renderQrCode = (url) => {
   if (typeof window.qrcode !== "function") {
@@ -36,6 +45,24 @@ const renderQrCode = (url) => {
   } catch (error) {
     return false;
   }
+};
+
+const ensureQrScript = () => {
+  if (typeof window.qrcode === "function") {
+    return Promise.resolve(true);
+  }
+  if (qrScriptPromise) {
+    return qrScriptPromise;
+  }
+  qrScriptPromise = new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = getStaticAssetUrl("qrcode-generator.js");
+    script.async = true;
+    script.onload = () => resolve(typeof window.qrcode === "function");
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+  return qrScriptPromise;
 };
 
 const toggleCameraPreview = (show) => {
@@ -213,7 +240,8 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    if (!renderQrCode(downloadUrl)) {
+    const qrReady = await ensureQrScript();
+    if (!qrReady || !renderQrCode(downloadUrl)) {
       const encodedUrl = encodeURIComponent(downloadUrl);
       qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
     }
