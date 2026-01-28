@@ -39,15 +39,24 @@ def _is_localhost(host: str) -> bool:
     return hostname in {"localhost", "127.0.0.1"}
 
 
+def _default_public_base_url() -> str:
+    configured = os.getenv("PUBLIC_BASE_URL")
+    if configured:
+        return configured.rstrip("/")
+    public_ip = os.getenv("PUBLIC_IP", "192.168.1.161")
+    public_port = os.getenv("PUBLIC_PORT", "5001")
+    return f"http://{public_ip}:{public_port}"
+
+
 def _public_base_url(headers) -> str | None:
     configured = os.getenv("PUBLIC_BASE_URL")
     if configured:
         return configured.rstrip("/")
     host = headers.get("Host")
-    if not host:
-        return None
-    scheme = headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
-    return f"{scheme}://{host}"
+    if host and not _is_localhost(host):
+        scheme = headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
+        return f"{scheme}://{host}"
+    return _default_public_base_url()
 
 
 def _save_session(image_paths: list[str], root: Path) -> str:
@@ -193,21 +202,6 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             _send_json(self, {"error": "Faltan las imágenes."}, status=400)
             return
 
-        host = self.headers.get("Host", "")
-        if not os.getenv("PUBLIC_BASE_URL") and host and _is_localhost(host):
-            _send_json(
-                self,
-                {
-                    "error": (
-                        "Estás usando localhost. Abre la app desde la IP local "
-                        "(por ejemplo http://192.168.1.50:5001) o define "
-                        "PUBLIC_BASE_URL para generar un QR accesible desde el móvil."
-                    )
-                },
-                status=400,
-            )
-            return
-
         base_url = _public_base_url(self.headers)
         if not base_url:
             _send_json(
@@ -236,7 +230,10 @@ def main() -> None:
         *args, directory=str(root), **kwargs
     )
     with TCPServer(("", 5001), handler) as httpd:
-        print("Servidor listo en http://localhost:5001")
+        print(
+            "Servidor listo en http://localhost:5001 "
+            f"(QR público en {_default_public_base_url()})"
+        )
         httpd.serve_forever()
 
 
