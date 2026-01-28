@@ -47,10 +47,26 @@ def _detect_local_ip() -> str:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
             udp_socket.connect(("8.8.8.8", 80))
             local_ip = udp_socket.getsockname()[0]
-            if local_ip:
+            if local_ip and not local_ip.startswith("127."):
                 return local_ip
     except OSError:
         pass
+
+    candidates = set()
+    hostname = socket.gethostname()
+    fqdn = socket.getfqdn()
+    for name in {hostname, fqdn}:
+        try:
+            _, _, addresses = socket.gethostbyname_ex(name)
+        except socket.gaierror:
+            continue
+        for address in addresses:
+            if address and not address.startswith("127."):
+                candidates.add(address)
+
+    for address in candidates:
+        return address
+
     return "127.0.0.1"
 
 
@@ -67,7 +83,11 @@ def _public_base_url(headers) -> str | None:
     configured = os.getenv("PUBLIC_BASE_URL")
     if configured:
         return configured.rstrip("/")
+    forwarded_host = headers.get("X-Forwarded-Host")
     host = headers.get("Host")
+    if forwarded_host and not _is_localhost(forwarded_host):
+        scheme = headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
+        return f"{scheme}://{forwarded_host}"
     if host and not _is_localhost(host):
         scheme = headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
         return f"{scheme}://{host}"
