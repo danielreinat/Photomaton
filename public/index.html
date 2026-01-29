@@ -29,6 +29,21 @@
         <button id="startButton" class="button button--primary">Realizar foto</button>
         <button id="resetButton" class="button button--ghost" disabled>Reiniciar</button>
       </div>
+
+      <div class="filter-panel hidden" id="filterPanel">
+        <div class="filter-panel__header">
+          <h3>Elige un filtro</h3>
+          <p class="helper-text">Selecciona si quieres la foto normal o en blanco y negro.</p>
+        </div>
+        <div class="filter-panel__options">
+          <button class="filter-button" data-filter="normal">Normal</button>
+          <button class="filter-button" data-filter="mono">B/N</button>
+        </div>
+        <div class="filter-panel__footer">
+          <span id="filterHint" class="helper-text">Filtro seleccionado: Normal.</span>
+          <button id="filterCancel" class="button button--ghost">Cancelar</button>
+        </div>
+      </div>
     </section>
 
     <section class="panel hidden" id="publishPanel">
