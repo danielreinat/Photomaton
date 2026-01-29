@@ -48,12 +48,10 @@ const drawWatermark = (context, width, height) => {
   if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
     return;
   }
-  const maxWidth = width * 0.33;
   const scale = maxWidth / watermarkImage.naturalWidth;
   const drawWidth = watermarkImage.naturalWidth * scale;
   const drawHeight = watermarkImage.naturalHeight * scale;
   const x = (width - drawWidth) / 2;
-  const y = height - drawHeight - height * 0.04;
   context.save();
   context.globalAlpha = 0.85;
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
@@ -176,10 +174,8 @@ const cancelFilterSelection = () => {
 const capturePhoto = () => {
   photoCount += 1;
   if (cameraFeed.videoWidth && cameraFeed.videoHeight) {
-    photoCanvas.width = cameraFeed.videoWidth;
-    photoCanvas.height = cameraFeed.videoHeight;
     canvasContext.filter = FILTERS[currentFilter].css;
-    canvasContext.drawImage(cameraFeed, 0, 0);
+    drawCameraFrame(canvasContext, cameraFeed);
     canvasContext.filter = "none";
     drawWatermark(canvasContext, photoCanvas.width, photoCanvas.height);
     photoCanvas.classList.remove("hidden");
