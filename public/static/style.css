@@ -51,7 +51,7 @@ body {
 }
 
 .app__logo {
-  width: min(240px, 60vw);
+  width: min(280px, 70vw);
   margin: 0 auto;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.45));
 }
@@ -102,12 +102,13 @@ body {
 .camera-preview__video,
 .camera-preview__canvas {
   width: 100%;
-  height: clamp(240px, 38vw, 300px);
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 18px;
   display: block;
   background: rgba(8, 10, 12, 0.6);
   margin-bottom: 18px;
-  transition: height 0.3s ease;
+  transition: aspect-ratio 0.3s ease;
 }
 
 .camera-preview__video {
@@ -133,7 +134,7 @@ body {
 
 .camera-preview--active .camera-preview__video,
 .camera-preview--active .camera-preview__canvas {
-  height: clamp(320px, 50vw, 420px);
+  aspect-ratio: 16 / 9;
 }
 
 .camera-preview--active .camera-preview__ring {
@@ -174,14 +175,15 @@ body {
 
 .filter-panel__header {
   display: grid;
-  gap: 6px;
+  gap: 12px;
   text-align: center;
 }
 
 .filter-panel__options {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  justify-content: center;
 }
 
 .filter-panel__footer {
