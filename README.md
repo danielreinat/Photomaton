@@ -35,6 +35,33 @@ python app.py
 
 Por defecto el servidor queda en `http://localhost:5001`.
 
+## Configurar Cloudinary (Render u otro hosting)
+
+Si defines las variables de entorno de Cloudinary, las fotos se suben allí.
+Cuando no están definidas, las imágenes se guardan en local dentro de `public/`.
+
+Variables necesarias:
+
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `CLOUDINARY_FOLDER` (opcional, base del folder; por defecto `photomaton`)
+
+Con esa configuración, la app guarda:
+
+- Todas las fotos en `<CLOUDINARY_FOLDER>/todas`
+- Las fotos marcadas para publicar también se duplican en
+  `<CLOUDINARY_FOLDER>/publicar`
+
+En Render debes añadirlas en **Environment**. Ejemplo:
+
+```text
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
+CLOUDINARY_FOLDER=photomaton
+```
+
 ## Cómo hacer que el QR funcione en el móvil (app de escritorio)
 
 El QR apunta a la URL donde estás abriendo la app. Si la abres en `localhost`
@@ -85,5 +112,5 @@ El QR usará esa URL pública para que el móvil abra el enlace de descarga.
 ## Notas
 
 - La cámara se maneja desde el navegador, así que revisa permisos si no inicia.
-- Los archivos se guardan en `public/uploads` y las sesiones en `public/sessions`.
+- Sin Cloudinary, los archivos se guardan en `public/uploads` y las sesiones en `public/sessions`.
 - El QR se genera mediante un servicio externo (api.qrserver.com) a través del servidor.

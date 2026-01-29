@@ -4,9 +4,11 @@ from pathlib import Path
 import os
 import base64
 import html
+import hashlib
 import io
 import json
 import re
+import time
 import uuid
 import urllib.parse
 import urllib.request
@@ -28,13 +30,119 @@ def _save_data_url(data_url: str, root: Path, folder: str = "uploads") -> str:
         raise ValueError("Formato de imagen inválido.")
     mime_type, encoded = match.groups()
     extension = mime_type.split("/")[-1]
-    image_bytes = base64.b64decode(encoded)
+    try:
+        image_bytes = base64.b64decode(encoded, validate=True)
+    except Exception as error:
+        raise ValueError("Formato de imagen inválido.") from error
     uploads_dir = root / folder
     uploads_dir.mkdir(parents=True, exist_ok=True)
     filename = f"photomaton-{uuid.uuid4().hex}.{extension}"
     file_path = uploads_dir / filename
     file_path.write_bytes(image_bytes)
     return f"/{folder}/{filename}"
+
+
+def _validate_data_url(data_url: str) -> None:
+    match = re.match(r"^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$", data_url)
+    if not match:
+        raise ValueError("Formato de imagen inválido.")
+    _, encoded = match.groups()
+    try:
+        base64.b64decode(encoded, validate=True)
+    except Exception as error:
+        raise ValueError("Formato de imagen inválido.") from error
+
+
+def _cloudinary_config() -> dict | None:
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+    api_key = os.getenv("CLOUDINARY_API_KEY", "").strip()
+    api_secret = os.getenv("CLOUDINARY_API_SECRET", "").strip()
+    if not cloud_name or not api_key or not api_secret:
+        return None
+    folder = os.getenv("CLOUDINARY_FOLDER", "photomaton").strip().strip("/")
+    return {
+        "cloud_name": cloud_name,
+        "api_key": api_key,
+        "api_secret": api_secret,
+        "folder": folder or "photomaton",
+    }
+
+
+def _sign_cloudinary(params: dict, api_secret: str) -> str:
+    pieces = [f"{key}={params[key]}" for key in sorted(params)]
+    signature_payload = "&".join(pieces) + api_secret
+    return hashlib.sha1(signature_payload.encode("utf-8")).hexdigest()
+
+
+def _encode_multipart(fields: dict, boundary: str) -> bytes:
+    lines: list[bytes] = []
+    for key, value in fields.items():
+        lines.append(f"--{boundary}".encode("utf-8"))
+        header = f'Content-Disposition: form-data; name="{key}"'
+        lines.append(header.encode("utf-8"))
+        lines.append(b"")
+        lines.append(str(value).encode("utf-8"))
+    lines.append(f"--{boundary}--".encode("utf-8"))
+    lines.append(b"")
+    return b"\r\n".join(lines)
+
+
+def _upload_to_cloudinary(data_url: str, folder: str) -> str:
+    config = _cloudinary_config()
+    if not config:
+        raise RuntimeError("Cloudinary no está configurado.")
+    timestamp = int(time.time())
+    public_id = f"photomaton-{uuid.uuid4().hex}"
+    signature = _sign_cloudinary(
+        {"folder": folder, "public_id": public_id, "timestamp": timestamp},
+        config["api_secret"],
+    )
+    fields = {
+        "file": data_url,
+        "api_key": config["api_key"],
+        "timestamp": timestamp,
+        "folder": folder,
+        "public_id": public_id,
+        "signature": signature,
+    }
+    boundary = f"photomaton-{uuid.uuid4().hex}"
+    body = _encode_multipart(fields, boundary)
+    request = urllib.request.Request(
+        f"https://api.cloudinary.com/v1_1/{config['cloud_name']}/image/upload",
+        data=body,
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        payload = response.read().decode("utf-8")
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Respuesta inválida de Cloudinary.") from error
+    secure_url = data.get("secure_url")
+    if not secure_url:
+        raise RuntimeError(f"Cloudinary error: {data.get('error')}")
+    return secure_url
+
+
+def _store_photos(images: list[str], root: Path, publish: bool) -> list[str]:
+    config = _cloudinary_config()
+    saved_paths: list[str] = []
+    if not config:
+        target_folder = "publicar" if publish else "uploads"
+        for image_data_url in images:
+            saved_paths.append(_save_data_url(image_data_url, root, folder=target_folder))
+        return saved_paths
+
+    base_folder = config["folder"]
+    all_folder = f"{base_folder}/todas"
+    publish_folder = f"{base_folder}/publicar"
+    for image_data_url in images:
+        _validate_data_url(image_data_url)
+        saved_paths.append(_upload_to_cloudinary(image_data_url, all_folder))
+        if publish:
+            _upload_to_cloudinary(image_data_url, publish_folder)
+    return saved_paths
 
 
 def _resolve_base_url() -> str:
@@ -206,10 +314,21 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
                 for image_path in session["images"]:
-                    file_path = Path(self.directory) / image_path.lstrip("/")
-                    if not file_path.exists():
-                        continue
-                    zip_file.write(file_path, arcname=file_path.name)
+                    if image_path.startswith("http"):
+                        try:
+                            with urllib.request.urlopen(image_path, timeout=10) as response:
+                                payload = response.read()
+                            filename = Path(
+                                urllib.parse.urlparse(image_path).path
+                            ).name or "photo.png"
+                            zip_file.writestr(filename, payload)
+                        except Exception:
+                            continue
+                    else:
+                        file_path = Path(self.directory) / image_path.lstrip("/")
+                        if not file_path.exists():
+                            continue
+                        zip_file.write(file_path, arcname=file_path.name)
             zip_payload = zip_buffer.getvalue()
             filename = f"photomaton-{session_id}.zip"
             self.send_response(200)
@@ -251,18 +370,19 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
 
         base_url = _resolve_base_url()
 
-        image_paths = []
-        target_folder = "publicar" if publish else "uploads"
         for image_data_url in images:
-            try:
-                image_paths.append(
-                    _save_data_url(
-                        image_data_url, Path(self.directory), folder=target_folder
-                    )
-                )
-            except ValueError as error:
-                _send_json(self, {"error": str(error)}, status=400)
+            if not isinstance(image_data_url, str):
+                _send_json(self, {"error": "Formato de imagen inválido."}, status=400)
                 return
+
+        try:
+            image_paths = _store_photos(images, Path(self.directory), publish)
+        except ValueError as error:
+            _send_json(self, {"error": str(error)}, status=400)
+            return
+        except Exception:
+            _send_json(self, {"error": "No se pudieron guardar las fotos."}, status=500)
+            return
 
         session_id = _save_session(image_paths, Path(self.directory))
         download_url = f"{base_url}/download/{session_id}"
