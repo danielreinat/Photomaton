@@ -48,14 +48,36 @@ const drawWatermark = (context, width, height) => {
   if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
     return;
   }
+  const maxWidth = Math.min(width * 0.4, 220);
   const scale = maxWidth / watermarkImage.naturalWidth;
   const drawWidth = watermarkImage.naturalWidth * scale;
   const drawHeight = watermarkImage.naturalHeight * scale;
   const x = (width - drawWidth) / 2;
+  const y = height - drawHeight - Math.max(height * 0.05, 16);
   context.save();
   context.globalAlpha = 0.85;
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
   context.restore();
+};
+
+const drawCameraFrame = (context, video) => {
+  const { videoWidth, videoHeight } = video;
+  if (!videoWidth || !videoHeight) {
+    return;
+  }
+  if (photoCanvas.width !== videoWidth || photoCanvas.height !== videoHeight) {
+    photoCanvas.width = videoWidth;
+    photoCanvas.height = videoHeight;
+  }
+  const canvasWidth = photoCanvas.width;
+  const canvasHeight = photoCanvas.height;
+  const scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
+  const drawWidth = videoWidth * scale;
+  const drawHeight = videoHeight * scale;
+  const x = (canvasWidth - drawWidth) / 2;
+  const y = (canvasHeight - drawHeight) / 2;
+  context.clearRect(0, 0, canvasWidth, canvasHeight);
+  context.drawImage(video, x, y, drawWidth, drawHeight);
 };
 
 const toggleCameraPreview = (show) => {
@@ -250,7 +272,7 @@ const startSession = async () => {
       remaining -= 1;
       countdownTimer = setTimeout(tick, 1000);
     } else {
-      updateCountdown("¡Flash!");
+      updateCountdown("¡Foto!");
       capturePhoto();
     }
   };
