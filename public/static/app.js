@@ -11,6 +11,8 @@ const publishNo = document.getElementById("publishNo");
 const downloadPanel = document.getElementById("downloadPanel");
 const downloadStatus = document.getElementById("downloadStatus");
 const downloadLink = document.getElementById("downloadLink");
+const qrPanel = document.getElementById("qrPanel");
+const qrImage = document.getElementById("qrImage");
 
 let photoCount = 0;
 let photoDataUrls = [];
@@ -36,6 +38,12 @@ const resetPanels = () => {
   if (downloadLink) {
     downloadLink.classList.add("hidden");
     downloadLink.setAttribute("href", "#");
+  }
+  if (qrPanel) {
+    qrPanel.classList.add("hidden");
+  }
+  if (qrImage) {
+    qrImage.removeAttribute("src");
   }
 };
 
@@ -210,6 +218,13 @@ const createDownloadSession = async () => {
     if (downloadLink) {
       downloadLink.setAttribute("href", downloadUrl);
       downloadLink.classList.remove("hidden");
+    }
+    if (qrPanel && qrImage) {
+      qrImage.setAttribute(
+        "src",
+        `/api/qr?size=260x260&data=${encodeURIComponent(downloadUrl)}`
+      );
+      qrPanel.classList.remove("hidden");
     }
   } catch (error) {
     statusLabel.textContent =

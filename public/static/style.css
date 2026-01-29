@@ -241,6 +241,22 @@ input::placeholder {
   color: #ffb86b;
 }
 
+.qr-panel {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+}
+
+.qr-panel__image {
+  width: min(220px, 70vw);
+  aspect-ratio: 1 / 1;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
 .hidden {
   display: none;
 }
