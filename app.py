@@ -43,6 +43,13 @@ def _is_localhost(host: str) -> bool:
     return hostname in {"localhost", "127.0.0.1"}
 
 
+def _is_unroutable_host(host: str) -> bool:
+    hostname = host.split(":", 1)[0].strip("[]").lower()
+    if hostname.startswith("127."):
+        return True
+    return hostname in {"localhost", "0.0.0.0", "::", "::1"}
+
+
 def _detect_local_ip() -> str:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
@@ -311,7 +318,16 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
 
         session_id = _save_session(image_paths, Path(self.directory))
         download_url = f"{base_url}/download/{session_id}"
-        _send_json(self, {"downloadUrl": download_url})
+        warning = None
+        parsed_base_url = urllib.parse.urlparse(base_url)
+        host = parsed_base_url.hostname or ""
+        if _is_unroutable_host(host):
+            warning = (
+                "El QR apunta a localhost y no funcionará desde el móvil. "
+                "Abre la app con la IP local (por ejemplo http://192.168.1.50:5001) "
+                "o define PUBLIC_BASE_URL al iniciar el servidor."
+            )
+        _send_json(self, {"downloadUrl": download_url, "warning": warning})
 
 
 def main() -> None:

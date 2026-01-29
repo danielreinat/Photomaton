@@ -13,6 +13,7 @@ const qrImage = document.getElementById("qrImage");
 const qrStatus = document.getElementById("qrStatus");
 const qrResult = document.getElementById("qrResult");
 const retryQr = document.getElementById("retryQr");
+const qrWarning = document.getElementById("qrWarning");
 
 const QR_PLACEHOLDER =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%25' height='100%25' fill='%2310140c'/><text x='50%25' y='50%25' fill='%23a3adb8' font-family='Poppins, sans-serif' font-size='16' dominant-baseline='middle' text-anchor='middle'>QR listo en breve</text></svg>";
@@ -56,6 +57,10 @@ const resetPanels = () => {
   qrStatus.textContent = "";
   retryQr.classList.add("hidden");
   qrImage.src = QR_PLACEHOLDER;
+  if (qrWarning) {
+    qrWarning.textContent = "";
+    qrWarning.classList.add("hidden");
+  }
 
   setQrResult("QR pendiente de generar.");
 };
@@ -224,6 +229,15 @@ const createDownloadSession = async () => {
     setQrResult("QR solicitado al servidor.");
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
+    if (qrWarning) {
+      if (payload.warning) {
+        qrWarning.textContent = payload.warning;
+        qrWarning.classList.remove("hidden");
+      } else {
+        qrWarning.textContent = "";
+        qrWarning.classList.add("hidden");
+      }
+    }
   } catch (error) {
     statusLabel.textContent =
       "No se pudo generar el QR. Pulsa reintentar.";
@@ -231,6 +245,10 @@ const createDownloadSession = async () => {
       error instanceof Error ? error.message : "Error desconocido.";
     setQrResult("QR no generado.", "error");
     retryQr.classList.remove("hidden");
+    if (qrWarning) {
+      qrWarning.textContent = "";
+      qrWarning.classList.add("hidden");
+    }
   }
 };
 
