@@ -44,7 +44,7 @@
       <h2>Descarga tus fotos</h2>
       <p>
         Escanea este código QR desde tu móvil para abrir la página de descarga.
-        El enlace se configura automáticamente con la IP disponible del equipo.
+        El enlace apunta a localhost para usarlo en este equipo.
       </p>
       <div class="qr-grid">
         <div class="qr-card">
@@ -54,6 +54,15 @@
         <div class="qr-meta">
           <p class="helper-text" id="qrStatus">Generando enlace seguro...</p>
           <p class="helper-text helper-text--warning hidden" id="qrWarning"></p>
+          <a
+            id="downloadLink"
+            class="button button--ghost hidden"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir enlace en este equipo
+          </a>
           <div class="actions">
             <button id="retryQr" class="button button--primary hidden">Reintentar</button>
           </div>
