@@ -180,14 +180,27 @@ def _render_download_page(session_id: str, images: list[str], base_url: str | No
 def _fetch_qr_image(data: str, size: str = "240x240") -> tuple[bytes, str]:
     safe_size = size if re.match(r"^\d{2,4}x\d{2,4}$", size) else "240x240"
     encoded_data = urllib.parse.quote(data, safe="")
-    request_url = (
-        "https://api.qrserver.com/v1/create-qr-code/"
-        f"?size={safe_size}&data={encoded_data}"
-    )
-    request = urllib.request.Request(request_url, headers={"User-Agent": "Photomaton"})
-    with urllib.request.urlopen(request, timeout=8) as response:
-        content_type = response.headers.get("Content-Type", "image/png")
-        return response.read(), content_type
+    request_urls = [
+        (
+            "https://api.qrserver.com/v1/create-qr-code/"
+            f"?size={safe_size}&data={encoded_data}"
+        ),
+        f"https://quickchart.io/qr?size={safe_size}&text={encoded_data}",
+    ]
+    last_error: Exception | None = None
+    for request_url in request_urls:
+        request = urllib.request.Request(request_url, headers={"User-Agent": "Photomaton"})
+        try:
+            with urllib.request.urlopen(request, timeout=8) as response:
+                content_type = response.headers.get("Content-Type", "image/png")
+                payload = response.read()
+                if not content_type.startswith("image/") or not payload:
+                    raise ValueError("Respuesta inválida del servicio de QR.")
+                return payload, content_type
+        except Exception as error:
+            last_error = error
+            continue
+    raise last_error or RuntimeError("No se pudo generar el QR.")
 
 
 class PhotomatonHandler(SimpleHTTPRequestHandler):

@@ -41,6 +41,11 @@ const buildQrImageUrl = (url) => {
   return `/api/qr?${params.toString()}`;
 };
 
+const showQrError = (message) => {
+  setQrResult(message, "error");
+  retryQr.classList.remove("hidden");
+};
+
 const toggleCameraPreview = (show) => {
   if (show) {
     cameraFeed.classList.remove("hidden");
@@ -258,6 +263,10 @@ qrImage.addEventListener("load", () => {
     return;
   }
 
+  if (!qrImage.naturalWidth || !qrImage.naturalHeight) {
+    showQrError("El QR no se pudo mostrar.");
+    return;
+  }
   setQrResult("QR generado y visible.", "success");
 });
 qrImage.addEventListener("error", () => {
@@ -265,8 +274,7 @@ qrImage.addEventListener("error", () => {
     return;
   }
 
-  setQrResult("El QR no se pudo mostrar.", "error");
-  retryQr.classList.remove("hidden");
+  showQrError("El QR no se pudo mostrar.");
 });
 
 resetState();
