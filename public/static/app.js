@@ -48,40 +48,14 @@ const drawWatermark = (context, width, height) => {
   if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
     return;
   }
-  const maxWidth = width * 0.4;
   const scale = maxWidth / watermarkImage.naturalWidth;
   const drawWidth = watermarkImage.naturalWidth * scale;
   const drawHeight = watermarkImage.naturalHeight * scale;
   const x = (width - drawWidth) / 2;
-  const y = height - drawHeight - height * 0.08;
   context.save();
   context.globalAlpha = 0.85;
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
   context.restore();
-};
-
-const drawCameraFrame = (context, video) => {
-  const sourceWidth = video.videoWidth;
-  const sourceHeight = video.videoHeight;
-  if (sourceHeight > sourceWidth) {
-    photoCanvas.width = sourceHeight;
-    photoCanvas.height = sourceWidth;
-    context.save();
-    context.translate(photoCanvas.width / 2, photoCanvas.height / 2);
-    context.rotate(-Math.PI / 2);
-    context.drawImage(
-      video,
-      -sourceWidth / 2,
-      -sourceHeight / 2,
-      sourceWidth,
-      sourceHeight
-    );
-    context.restore();
-    return;
-  }
-  photoCanvas.width = sourceWidth;
-  photoCanvas.height = sourceHeight;
-  context.drawImage(video, 0, 0);
 };
 
 const toggleCameraPreview = (show) => {
