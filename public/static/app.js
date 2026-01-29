@@ -10,7 +10,6 @@ const publishYes = document.getElementById("publishYes");
 const publishNo = document.getElementById("publishNo");
 const downloadPanel = document.getElementById("downloadPanel");
 const downloadStatus = document.getElementById("downloadStatus");
-const downloadLink = document.getElementById("downloadLink");
 const qrPanel = document.getElementById("qrPanel");
 const qrImage = document.getElementById("qrImage");
 const cameraPreview = document.querySelector(".camera-preview");
@@ -43,10 +42,6 @@ const resetPanels = () => {
   publishPanel.classList.add("hidden");
   downloadPanel.classList.add("hidden");
   downloadStatus.textContent = "";
-  if (downloadLink) {
-    downloadLink.classList.add("hidden");
-    downloadLink.setAttribute("href", "#");
-  }
   if (qrPanel) {
     qrPanel.classList.add("hidden");
   }
@@ -242,12 +237,8 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    downloadStatus.textContent = "Enlace listo. Puedes abrir tus fotos.";
-    statusLabel.textContent = "Enlace de descarga preparado.";
-    if (downloadLink) {
-      downloadLink.setAttribute("href", downloadUrl);
-      downloadLink.classList.remove("hidden");
-    }
+    downloadStatus.textContent = "Enlace listo. Escanea el QR para abrir tus fotos.";
+    statusLabel.textContent = "QR de descarga preparado.";
     if (qrPanel && qrImage) {
       qrImage.setAttribute(
         "src",
