@@ -30,8 +30,8 @@ let isChoosingFilter = false;
 const FILTERS = {
   normal: {
     label: "Normal",
-    css: "none",
-    hint: "Foto sin efectos.",
+    css: "contrast(1.08) saturate(1.18) brightness(1.03) sepia(0.08)",
+    hint: "Colores cálidos y vivos.",
   },
 
   mono: {
@@ -39,6 +39,49 @@ const FILTERS = {
     css: "grayscale(1) contrast(1.1)",
     hint: "Blanco y negro clásico.",
   },
+};
+
+const watermarkImage = new Image();
+watermarkImage.src = "/static/logo.png";
+
+const drawWatermark = (context, width, height) => {
+  if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
+    return;
+  }
+  const maxWidth = width * 0.4;
+  const scale = maxWidth / watermarkImage.naturalWidth;
+  const drawWidth = watermarkImage.naturalWidth * scale;
+  const drawHeight = watermarkImage.naturalHeight * scale;
+  const x = (width - drawWidth) / 2;
+  const y = height - drawHeight - height * 0.08;
+  context.save();
+  context.globalAlpha = 0.85;
+  context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
+  context.restore();
+};
+
+const drawCameraFrame = (context, video) => {
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+  if (sourceHeight > sourceWidth) {
+    photoCanvas.width = sourceHeight;
+    photoCanvas.height = sourceWidth;
+    context.save();
+    context.translate(photoCanvas.width / 2, photoCanvas.height / 2);
+    context.rotate(-Math.PI / 2);
+    context.drawImage(
+      video,
+      -sourceWidth / 2,
+      -sourceHeight / 2,
+      sourceWidth,
+      sourceHeight
+    );
+    context.restore();
+    return;
+  }
+  photoCanvas.width = sourceWidth;
+  photoCanvas.height = sourceHeight;
+  context.drawImage(video, 0, 0);
 };
 
 const toggleCameraPreview = (show) => {
@@ -157,11 +200,10 @@ const cancelFilterSelection = () => {
 const capturePhoto = () => {
   photoCount += 1;
   if (cameraFeed.videoWidth && cameraFeed.videoHeight) {
-    photoCanvas.width = cameraFeed.videoWidth;
-    photoCanvas.height = cameraFeed.videoHeight;
     canvasContext.filter = FILTERS[currentFilter].css;
-    canvasContext.drawImage(cameraFeed, 0, 0);
+    drawCameraFrame(canvasContext, cameraFeed);
     canvasContext.filter = "none";
+    drawWatermark(canvasContext, photoCanvas.width, photoCanvas.height);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
     photoDataUrls.push(photoCanvas.toDataURL("image/png"));
