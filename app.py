@@ -5,8 +5,6 @@ import base64
 import html
 import io
 import json
-import os
-import socket
 import re
 import uuid
 import urllib.parse
@@ -38,68 +36,8 @@ def _save_data_url(data_url: str, root: Path, folder: str = "uploads") -> str:
     return f"/{folder}/{filename}"
 
 
-def _is_localhost(host: str) -> bool:
-    hostname = host.split(":", 1)[0].strip("[]").lower()
-    return hostname in {"localhost", "127.0.0.1"}
-
-
-def _is_unroutable_host(host: str) -> bool:
-    hostname = host.split(":", 1)[0].strip("[]").lower()
-    if hostname.startswith("127."):
-        return True
-    return hostname in {"localhost", "0.0.0.0", "::", "::1"}
-
-
-def _detect_local_ip() -> str:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-            udp_socket.connect(("8.8.8.8", 80))
-            local_ip = udp_socket.getsockname()[0]
-            if local_ip and not local_ip.startswith("127."):
-                return local_ip
-    except OSError:
-        pass
-
-    candidates = set()
-    hostname = socket.gethostname()
-    fqdn = socket.getfqdn()
-    for name in {hostname, fqdn}:
-        try:
-            _, _, addresses = socket.gethostbyname_ex(name)
-        except socket.gaierror:
-            continue
-        for address in addresses:
-            if address and not address.startswith("127."):
-                candidates.add(address)
-
-    for address in candidates:
-        return address
-
-    return "127.0.0.1"
-
-
-def _default_public_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL")
-    if configured:
-        return configured.rstrip("/")
-    public_ip = os.getenv("PUBLIC_IP", _detect_local_ip())
-    public_port = os.getenv("PUBLIC_PORT", "5001")
-    return f"http://{public_ip}:{public_port}"
-
-
-def _public_base_url(headers) -> str | None:
-    configured = os.getenv("PUBLIC_BASE_URL")
-    if configured:
-        return configured.rstrip("/")
-    forwarded_host = headers.get("X-Forwarded-Host")
-    host = headers.get("Host")
-    if forwarded_host and not _is_localhost(forwarded_host):
-        scheme = headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
-        return f"{scheme}://{forwarded_host}"
-    if host and not _is_localhost(host):
-        scheme = headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
-        return f"{scheme}://{host}"
-    return _default_public_base_url()
+def _local_base_url() -> str:
+    return "http://localhost:5001"
 
 
 def _save_session(image_paths: list[str], root: Path) -> str:
@@ -240,7 +178,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             if not session or not session.get("images"):
                 self.send_error(404)
                 return
-            base_url = _public_base_url(self.headers)
+            base_url = _local_base_url()
             html_payload = _render_download_page(
                 session_id, session["images"], base_url
             )
@@ -307,14 +245,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         if not isinstance(publish, bool):
             publish = False
 
-        base_url = _public_base_url(self.headers)
-        if not base_url:
-            _send_json(
-                self,
-                {"error": "No se pudo determinar la URL pública del servidor."},
-                status=500,
-            )
-            return
+        base_url = _local_base_url()
 
         image_paths = []
         target_folder = "publicar" if publish else "uploads"
@@ -331,16 +262,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
 
         session_id = _save_session(image_paths, Path(self.directory))
         download_url = f"{base_url}/download/{session_id}"
-        warning = None
-        parsed_base_url = urllib.parse.urlparse(base_url)
-        host = parsed_base_url.hostname or ""
-        if _is_unroutable_host(host):
-            warning = (
-                "El QR apunta a localhost y no funcionará desde el móvil. "
-                "Abre la app con la IP local (por ejemplo http://192.168.1.50:5001) "
-                "o define PUBLIC_BASE_URL al iniciar el servidor."
-            )
-        _send_json(self, {"downloadUrl": download_url, "warning": warning})
+        _send_json(self, {"downloadUrl": download_url})
 
 
 def main() -> None:
@@ -351,7 +273,7 @@ def main() -> None:
     with TCPServer(("", 5001), handler) as httpd:
         print(
             "Servidor listo en http://localhost:5001 "
-            f"(QR público en {_default_public_base_url()})"
+            f"(QR local en {_local_base_url()})"
         )
         httpd.serve_forever()
 
