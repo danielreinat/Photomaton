@@ -14,6 +14,7 @@ const qrStatus = document.getElementById("qrStatus");
 const qrResult = document.getElementById("qrResult");
 const retryQr = document.getElementById("retryQr");
 const qrWarning = document.getElementById("qrWarning");
+const downloadLink = document.getElementById("downloadLink");
 
 const QR_PLACEHOLDER =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%25' height='100%25' fill='%2310140c'/><text x='50%25' y='50%25' fill='%23a3adb8' font-family='Poppins, sans-serif' font-size='16' dominant-baseline='middle' text-anchor='middle'>QR listo en breve</text></svg>";
@@ -61,6 +62,10 @@ const resetPanels = () => {
   qrPanel.classList.add("hidden");
   qrStatus.textContent = "";
   retryQr.classList.add("hidden");
+  if (downloadLink) {
+    downloadLink.classList.add("hidden");
+    downloadLink.setAttribute("href", "#");
+  }
   qrImage.src = QR_PLACEHOLDER;
   if (qrWarning) {
     qrWarning.textContent = "";
@@ -234,6 +239,10 @@ const createDownloadSession = async () => {
     setQrResult("QR solicitado al servidor.");
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
+    if (downloadLink) {
+      downloadLink.setAttribute("href", downloadUrl);
+      downloadLink.classList.remove("hidden");
+    }
     if (qrWarning) {
       if (payload.warning) {
         qrWarning.textContent = payload.warning;
