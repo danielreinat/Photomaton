@@ -7,6 +7,7 @@ import html
 import hashlib
 import io
 import json
+import mimetypes
 import re
 import time
 import uuid
@@ -179,13 +180,14 @@ def _render_download_page(session_id: str, images: list[str], base_url: str | No
         safe_path = html.escape(image_path, quote=True)
         filename = Path(image_path).name
         safe_filename = html.escape(filename, quote=True)
+        download_link = f"/download-photo/{session_id}/{index}"
         items_html.append(
             f"""
             <li class="download-item">
               <img src="{safe_path}" alt="Foto {index}" />
               <div>
                 <p>Foto {index}</p>
-                <a class="button" href="{safe_path}" download="{safe_filename}">
+                <a class="button" href="{download_link}" download="{safe_filename}">
                   Descargar
                 </a>
               </div>
@@ -300,6 +302,61 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
+            return
+
+        if self.path.startswith("/download-photo/"):
+            parts = self.path.split("/download-photo/")[-1].strip().split("/")
+            if len(parts) != 2:
+                self.send_error(404)
+                return
+            session_id, index_raw = parts
+            try:
+                index = int(index_raw)
+            except ValueError:
+                self.send_error(404)
+                return
+            session = _load_session(session_id, Path(self.directory))
+            if not session or not session.get("images"):
+                self.send_error(404)
+                return
+            images = session["images"]
+            if index < 1 or index > len(images):
+                self.send_error(404)
+                return
+            image_path = images[index - 1]
+            filename = Path(urllib.parse.urlparse(image_path).path).name or f"photo-{index}.png"
+            if image_path.startswith("http"):
+                try:
+                    with urllib.request.urlopen(image_path, timeout=10) as response:
+                        payload = response.read()
+                        content_type = response.headers.get("Content-Type", "application/octet-stream")
+                except Exception:
+                    self.send_error(502, "No se pudo descargar la imagen.")
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header(
+                    "Content-Disposition", f'attachment; filename="{filename}"'
+                )
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+                return
+
+            file_path = Path(self.directory) / image_path.lstrip("/")
+            if not file_path.exists():
+                self.send_error(404)
+                return
+            payload = file_path.read_bytes()
+            content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header(
+                "Content-Disposition", f'attachment; filename="{file_path.name}"'
+            )
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
             return
 
         if self.path.startswith("/download-all/"):
