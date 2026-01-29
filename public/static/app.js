@@ -8,16 +8,9 @@ const canvasContext = photoCanvas.getContext("2d");
 const publishPanel = document.getElementById("publishPanel");
 const publishYes = document.getElementById("publishYes");
 const publishNo = document.getElementById("publishNo");
-const qrPanel = document.getElementById("qrPanel");
-const qrImage = document.getElementById("qrImage");
-const qrStatus = document.getElementById("qrStatus");
-const qrResult = document.getElementById("qrResult");
-const retryQr = document.getElementById("retryQr");
-const qrWarning = document.getElementById("qrWarning");
+const downloadPanel = document.getElementById("downloadPanel");
+const downloadStatus = document.getElementById("downloadStatus");
 const downloadLink = document.getElementById("downloadLink");
-
-const QR_PLACEHOLDER =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%25' height='100%25' fill='%2310140c'/><text x='50%25' y='50%25' fill='%23a3adb8' font-family='Poppins, sans-serif' font-size='16' dominant-baseline='middle' text-anchor='middle'>QR listo en breve</text></svg>";
 
 let photoCount = 0;
 let photoDataUrls = [];
@@ -25,27 +18,6 @@ let downloadUrl = null;
 let countdownTimer = null;
 let cameraStream = null;
 let publishChoice = null;
-
-const setQrResult = (message, status = "pending") => {
-  if (!qrResult) {
-    return;
-  }
-  qrResult.textContent = message;
-  qrResult.dataset.status = status;
-};
-
-const buildQrImageUrl = (url) => {
-  const params = new URLSearchParams({
-    size: "240x240",
-    data: url,
-  });
-  return `/api/qr?${params.toString()}`;
-};
-
-const showQrError = (message) => {
-  setQrResult(message, "error");
-  retryQr.classList.remove("hidden");
-};
 
 const toggleCameraPreview = (show) => {
   if (show) {
@@ -59,20 +31,12 @@ const toggleCameraPreview = (show) => {
 
 const resetPanels = () => {
   publishPanel.classList.add("hidden");
-  qrPanel.classList.add("hidden");
-  qrStatus.textContent = "";
-  retryQr.classList.add("hidden");
+  downloadPanel.classList.add("hidden");
+  downloadStatus.textContent = "";
   if (downloadLink) {
     downloadLink.classList.add("hidden");
     downloadLink.setAttribute("href", "#");
   }
-  qrImage.src = QR_PLACEHOLDER;
-  if (qrWarning) {
-    qrWarning.textContent = "";
-    qrWarning.classList.add("hidden");
-  }
-
-  setQrResult("QR pendiente de generar.");
 };
 
 const resetState = () => {
@@ -171,7 +135,7 @@ const startSession = async () => {
 const handlePublishChoice = (choice) => {
   publishChoice = choice;
   publishPanel.classList.add("hidden");
-  qrPanel.classList.remove("hidden");
+  downloadPanel.classList.remove("hidden");
   statusLabel.textContent = "Generando tu enlace de descarga...";
   updateCountdown("✓");
   createDownloadSession();
@@ -216,14 +180,10 @@ const startCamera = async () => {
 
 const createDownloadSession = async () => {
   if (!photoDataUrls.length) {
-    qrStatus.textContent = "No hay fotos disponibles para descargar.";
-    setQrResult("QR no generado porque faltan fotos.", "error");
+    downloadStatus.textContent = "No hay fotos disponibles para descargar.";
     return;
   }
-  qrStatus.textContent = "Generando enlace seguro...";
-  setQrResult("Generando QR...");
-
-  retryQr.classList.add("hidden");
+  downloadStatus.textContent = "Generando enlace seguro...";
   try {
     const response = await fetch("/api/create-session", {
       method: "POST",
@@ -235,55 +195,18 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    qrImage.src = buildQrImageUrl(downloadUrl);
-    setQrResult("QR solicitado al servidor.");
-    qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
+    downloadStatus.textContent = "Enlace listo. Puedes abrir tus fotos.";
     statusLabel.textContent = "Enlace de descarga preparado.";
     if (downloadLink) {
       downloadLink.setAttribute("href", downloadUrl);
       downloadLink.classList.remove("hidden");
     }
-    if (qrWarning) {
-      if (payload.warning) {
-        qrWarning.textContent = payload.warning;
-        qrWarning.classList.remove("hidden");
-      } else {
-        qrWarning.textContent = "";
-        qrWarning.classList.add("hidden");
-      }
-    }
   } catch (error) {
     statusLabel.textContent =
-      "No se pudo generar el QR. Pulsa reintentar.";
-    qrStatus.textContent =
+      "No se pudo generar el enlace. Intenta de nuevo.";
+    downloadStatus.textContent =
       error instanceof Error ? error.message : "Error desconocido.";
-    setQrResult("QR no generado.", "error");
-    retryQr.classList.remove("hidden");
-    if (qrWarning) {
-      qrWarning.textContent = "";
-      qrWarning.classList.add("hidden");
-    }
   }
 };
-
-retryQr.addEventListener("click", createDownloadSession);
-qrImage.addEventListener("load", () => {
-  if (!downloadUrl) {
-    return;
-  }
-
-  if (!qrImage.naturalWidth || !qrImage.naturalHeight) {
-    showQrError("El QR no se pudo mostrar.");
-    return;
-  }
-  setQrResult("QR generado y visible.", "success");
-});
-qrImage.addEventListener("error", () => {
-  if (!downloadUrl) {
-    return;
-  }
-
-  showQrError("El QR no se pudo mostrar.");
-});
 
 resetState();

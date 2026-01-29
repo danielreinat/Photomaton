@@ -40,33 +40,21 @@
       </div>
     </section>
 
-    <section class="panel hidden" id="qrPanel">
-      <h2>Descarga tus fotos</h2>
-      <p>
-        Escanea este código QR desde tu móvil para abrir la página de descarga.
-        El enlace apunta a localhost para usarlo en este equipo.
+    <section class="panel hidden" id="downloadPanel">
+      <h2>Tus fotos están listas</h2>
+      <p id="downloadStatus" class="helper-text">
+        Generando el enlace seguro de descarga.
       </p>
-      <div class="qr-grid">
-        <div class="qr-card">
-          <img id="qrImage" src="" alt="Código QR de descarga" />
-          <p class="qr-result" id="qrResult">QR pendiente de generar.</p>
-        </div>
-        <div class="qr-meta">
-          <p class="helper-text" id="qrStatus">Generando enlace seguro...</p>
-          <p class="helper-text helper-text--warning hidden" id="qrWarning"></p>
-          <a
-            id="downloadLink"
-            class="button button--ghost hidden"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Abrir enlace en este equipo
-          </a>
-          <div class="actions">
-            <button id="retryQr" class="button button--primary hidden">Reintentar</button>
-          </div>
-        </div>
+      <div class="actions">
+        <a
+          id="downloadLink"
+          class="button button--primary hidden"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Ver fotos realizadas
+        </a>
       </div>
     </section>
   </main>
