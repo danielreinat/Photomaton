@@ -38,7 +38,7 @@ def _save_data_url(data_url: str, root: Path, folder: str = "uploads") -> str:
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "https://unaccredited-overfavorable-lorie.ngrok-free.dev").strip()
+    configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
     if configured:
         return configured.rstrip("/")
     return "http://localhost:5001"
