@@ -72,3 +72,4 @@ El QR usará esa URL pública para que el móvil abra el enlace de descarga.
 
 - La cámara se maneja desde el navegador, así que revisa permisos si no inicia.
 - Los archivos se guardan en `public/uploads` y las sesiones en `public/sessions`.
+- El QR se genera mediante un servicio externo (api.qrserver.com) a través del servidor.

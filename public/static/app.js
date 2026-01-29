@@ -23,8 +23,6 @@ let downloadUrl = null;
 let countdownTimer = null;
 let cameraStream = null;
 let publishChoice = null;
-let qrScriptPromise = null;
-let expectedQrSrc = null;
 
 const setQrResult = (message, status = "pending") => {
   if (!qrResult) {
@@ -34,37 +32,12 @@ const setQrResult = (message, status = "pending") => {
   qrResult.dataset.status = status;
 };
 
-const renderQrCode = (url) => {
-  if (typeof window.qrcode !== "function") {
-    return false;
-  }
-  try {
-    const qr = window.qrcode(0, "M");
-    qr.addData(url);
-    qr.make();
-    qrImage.src = qr.createDataURL(10, 2);
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-const ensureQrScript = () => {
-  if (typeof window.qrcode === "function") {
-    return Promise.resolve(true);
-  }
-  if (qrScriptPromise) {
-    return qrScriptPromise;
-  }
-  qrScriptPromise = new Promise((resolve) => {
-    const script = document.createElement("script");
-    script.src = "/static/qrcode-generator.js";
-    script.async = true;
-    script.onload = () => resolve(typeof window.qrcode === "function");
-    script.onerror = () => resolve(false);
-    document.head.appendChild(script);
+const buildQrImageUrl = (url) => {
+  const params = new URLSearchParams({
+    size: "240x240",
+    data: url,
   });
-  return qrScriptPromise;
+  return `/api/qr?${params.toString()}`;
 };
 
 const toggleCameraPreview = (show) => {
@@ -247,15 +220,8 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    const qrReady = await ensureQrScript();
-    if (!qrReady || !renderQrCode(downloadUrl)) {
-      const encodedUrl = encodeURIComponent(downloadUrl);
-      qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodedUrl}`;
-      setQrResult("QR solicitado vía servicio externo.");
-    } else {
-      setQrResult("QR generado localmente.");
-    }
-    expectedQrSrc = qrImage.src;
+    qrImage.src = buildQrImageUrl(downloadUrl);
+    setQrResult("QR solicitado al servidor.");
     qrStatus.textContent = "Enlace listo. Escanea el QR para descargar.";
     statusLabel.textContent = "Enlace de descarga preparado.";
   } catch (error) {

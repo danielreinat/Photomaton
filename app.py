@@ -10,6 +10,7 @@ import socket
 import re
 import uuid
 import urllib.parse
+import urllib.request
 import zipfile
 
 
@@ -169,8 +170,42 @@ def _render_download_page(session_id: str, images: list[str], base_url: str | No
 """
 
 
+def _fetch_qr_image(data: str, size: str = "240x240") -> tuple[bytes, str]:
+    safe_size = size if re.match(r"^\d{2,4}x\d{2,4}$", size) else "240x240"
+    encoded_data = urllib.parse.quote(data, safe="")
+    request_url = (
+        "https://api.qrserver.com/v1/create-qr-code/"
+        f"?size={safe_size}&data={encoded_data}"
+    )
+    request = urllib.request.Request(request_url, headers={"User-Agent": "Photomaton"})
+    with urllib.request.urlopen(request, timeout=8) as response:
+        content_type = response.headers.get("Content-Type", "image/png")
+        return response.read(), content_type
+
+
 class PhotomatonHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
+        parsed_url = urllib.parse.urlparse(self.path)
+        if parsed_url.path == "/api/qr":
+            query = urllib.parse.parse_qs(parsed_url.query)
+            data = query.get("data", [""])[0]
+            size = query.get("size", ["240x240"])[0]
+            if not data:
+                self.send_error(400, "Falta el parámetro data.")
+                return
+            try:
+                payload, content_type = _fetch_qr_image(data, size)
+            except Exception:
+                self.send_error(502, "No se pudo generar el QR.")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
         if self.path in {"", "/"}:
             self.path = "/index.html"
             super().do_GET()
