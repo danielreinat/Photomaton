@@ -30,8 +30,8 @@ let isChoosingFilter = false;
 const FILTERS = {
   normal: {
     label: "Normal",
-    css: "none",
-    hint: "Foto sin efectos.",
+    css: "contrast(1.08) saturate(1.18) brightness(1.03) sepia(0.08)",
+    hint: "Colores cálidos y vivos.",
   },
 
   mono: {
@@ -39,6 +39,25 @@ const FILTERS = {
     css: "grayscale(1) contrast(1.1)",
     hint: "Blanco y negro clásico.",
   },
+};
+
+const watermarkImage = new Image();
+watermarkImage.src = "/static/logo.png";
+
+const drawWatermark = (context, width, height) => {
+  if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
+    return;
+  }
+  const maxWidth = width * 0.33;
+  const scale = maxWidth / watermarkImage.naturalWidth;
+  const drawWidth = watermarkImage.naturalWidth * scale;
+  const drawHeight = watermarkImage.naturalHeight * scale;
+  const x = (width - drawWidth) / 2;
+  const y = height - drawHeight - height * 0.04;
+  context.save();
+  context.globalAlpha = 0.85;
+  context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
+  context.restore();
 };
 
 const toggleCameraPreview = (show) => {
@@ -162,6 +181,7 @@ const capturePhoto = () => {
     canvasContext.filter = FILTERS[currentFilter].css;
     canvasContext.drawImage(cameraFeed, 0, 0);
     canvasContext.filter = "none";
+    drawWatermark(canvasContext, photoCanvas.width, photoCanvas.height);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
     photoDataUrls.push(photoCanvas.toDataURL("image/png"));
