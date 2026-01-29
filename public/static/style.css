@@ -111,8 +111,8 @@ body {
 }
 
 .camera-preview__video {
-  object-fit: contain;
-  background: rgba(8, 10, 12, 0.85);
+  object-fit: cover;
+  background: transparent;
 }
 
 .camera-preview__canvas {
