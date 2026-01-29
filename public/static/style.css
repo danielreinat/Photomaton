@@ -281,6 +281,10 @@ input::placeholder {
   min-height: 1.2rem;
 }
 
+.helper-text--warning {
+  color: #ffb86b;
+}
+
 .hidden {
   display: none;
 }
