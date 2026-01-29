@@ -33,6 +33,7 @@ const FILTERS = {
     css: "none",
     hint: "Foto sin efectos.",
   },
+
   mono: {
     label: "B/N",
     css: "grayscale(1) contrast(1.1)",
@@ -106,6 +107,7 @@ const PHOTO_CONSTRAINTS = {
   height: { ideal: 2160 },
   frameRate: { ideal: 30, max: 60 },
 };
+
 
 const applyFilterSelection = (filterId) => {
   const selectedFilter = FILTERS[filterId] ? filterId : "normal";
