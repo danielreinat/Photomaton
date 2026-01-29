@@ -33,26 +33,7 @@ const FILTERS = {
     css: "none",
     hint: "Foto sin efectos.",
   },
-  funhouse: {
-    label: "Cara divertida",
-    css: "none",
-    hint: "Deformación divertida en la captura.",
-  },
-  beauty: {
-    label: "Beauty",
-    css: "brightness(1.08) saturate(1.1) contrast(1.05) blur(0.6px)",
-    hint: "Suaviza y realza tonos de piel.",
-  },
-  vintage: {
-    label: "Vintage",
-    css: "sepia(0.6) contrast(1.05) saturate(1.1)",
-    hint: "Tono cálido y nostálgico.",
-  },
-  neon: {
-    label: "Neón",
-    css: "contrast(1.2) saturate(1.4) hue-rotate(15deg)",
-    hint: "Colores vivos con contraste alto.",
-  },
+
   mono: {
     label: "B/N",
     css: "grayscale(1) contrast(1.1)",
@@ -127,43 +108,6 @@ const PHOTO_CONSTRAINTS = {
   frameRate: { ideal: 30, max: 60 },
 };
 
-const applyFunhouseEffect = (canvas, context) => {
-  const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = canvas.width;
-  tempCanvas.height = canvas.height;
-  const tempContext = tempCanvas.getContext("2d");
-  if (!tempContext) {
-    return;
-  }
-  tempContext.drawImage(canvas, 0, 0);
-  context.clearRect(0, 0, canvas.width, canvas.height);
-
-  const slices = 36;
-  const sliceHeight = Math.ceil(canvas.height / slices);
-  for (let i = 0; i < slices; i += 1) {
-    const sy = i * sliceHeight;
-    const sh = Math.min(sliceHeight, canvas.height - sy);
-    const wave = Math.sin((i / slices) * Math.PI * 2);
-    const offset = wave * canvas.width * 0.04;
-    context.drawImage(tempCanvas, 0, sy, canvas.width, sh, offset, sy, canvas.width, sh);
-  }
-
-  const centerWidth = canvas.width * 0.5;
-  const centerHeight = canvas.height * 0.5;
-  const sx = (canvas.width - centerWidth) / 2;
-  const sy = (canvas.height - centerHeight) / 2;
-  context.drawImage(
-    tempCanvas,
-    sx,
-    sy,
-    centerWidth,
-    centerHeight,
-    sx - centerWidth * 0.08,
-    sy - centerHeight * 0.08,
-    centerWidth * 1.16,
-    centerHeight * 1.16
-  );
-};
 
 const applyFilterSelection = (filterId) => {
   const selectedFilter = FILTERS[filterId] ? filterId : "normal";
@@ -218,9 +162,6 @@ const capturePhoto = () => {
     canvasContext.filter = FILTERS[currentFilter].css;
     canvasContext.drawImage(cameraFeed, 0, 0);
     canvasContext.filter = "none";
-    if (currentFilter === "funhouse") {
-      applyFunhouseEffect(photoCanvas, canvasContext);
-    }
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
     photoDataUrls.push(photoCanvas.toDataURL("image/png"));
