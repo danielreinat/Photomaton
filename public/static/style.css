@@ -136,11 +136,6 @@ body {
   height: clamp(320px, 50vw, 420px);
 }
 
-.camera-preview--active .camera-preview__video {
-  object-fit: cover;
-  background: rgba(8, 10, 12, 0.4);
-}
-
 .camera-preview--active .camera-preview__ring {
   width: 280px;
   height: 280px;
