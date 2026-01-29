@@ -13,6 +13,10 @@ const downloadStatus = document.getElementById("downloadStatus");
 const qrPanel = document.getElementById("qrPanel");
 const qrImage = document.getElementById("qrImage");
 const cameraPreview = document.querySelector(".camera-preview");
+const filterPanel = document.getElementById("filterPanel");
+const filterHint = document.getElementById("filterHint");
+const filterCancel = document.getElementById("filterCancel");
+const filterButtons = document.querySelectorAll("[data-filter]");
 
 let photoCount = 0;
 let photoDataUrls = [];
@@ -20,6 +24,41 @@ let downloadUrl = null;
 let countdownTimer = null;
 let cameraStream = null;
 let publishChoice = null;
+let currentFilter = "normal";
+let isChoosingFilter = false;
+
+const FILTERS = {
+  normal: {
+    label: "Normal",
+    css: "none",
+    hint: "Foto sin efectos.",
+  },
+  funhouse: {
+    label: "Cara divertida",
+    css: "none",
+    hint: "Deformación divertida en la captura.",
+  },
+  beauty: {
+    label: "Beauty",
+    css: "brightness(1.08) saturate(1.1) contrast(1.05) blur(0.6px)",
+    hint: "Suaviza y realza tonos de piel.",
+  },
+  vintage: {
+    label: "Vintage",
+    css: "sepia(0.6) contrast(1.05) saturate(1.1)",
+    hint: "Tono cálido y nostálgico.",
+  },
+  neon: {
+    label: "Neón",
+    css: "contrast(1.2) saturate(1.4) hue-rotate(15deg)",
+    hint: "Colores vivos con contraste alto.",
+  },
+  mono: {
+    label: "B/N",
+    css: "grayscale(1) contrast(1.1)",
+    hint: "Blanco y negro clásico.",
+  },
+};
 
 const toggleCameraPreview = (show) => {
   if (show) {
@@ -63,6 +102,8 @@ const resetState = () => {
   photoDataUrls = [];
   downloadUrl = null;
   publishChoice = null;
+  isChoosingFilter = false;
+  applyFilterSelection("normal");
   toggleCameraPreview(false);
   toggleCaptureFocus(false);
   countdown.textContent = "Listo";
@@ -70,6 +111,9 @@ const resetState = () => {
   resetPanels();
   startButton.disabled = false;
   resetButton.disabled = true;
+  if (filterPanel) {
+    filterPanel.classList.add("hidden");
+  }
 };
 
 const updateCountdown = (value) => {
@@ -83,12 +127,100 @@ const PHOTO_CONSTRAINTS = {
   frameRate: { ideal: 30, max: 60 },
 };
 
+const applyFunhouseEffect = (canvas, context) => {
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tempContext = tempCanvas.getContext("2d");
+  if (!tempContext) {
+    return;
+  }
+  tempContext.drawImage(canvas, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  const slices = 36;
+  const sliceHeight = Math.ceil(canvas.height / slices);
+  for (let i = 0; i < slices; i += 1) {
+    const sy = i * sliceHeight;
+    const sh = Math.min(sliceHeight, canvas.height - sy);
+    const wave = Math.sin((i / slices) * Math.PI * 2);
+    const offset = wave * canvas.width * 0.04;
+    context.drawImage(tempCanvas, 0, sy, canvas.width, sh, offset, sy, canvas.width, sh);
+  }
+
+  const centerWidth = canvas.width * 0.5;
+  const centerHeight = canvas.height * 0.5;
+  const sx = (canvas.width - centerWidth) / 2;
+  const sy = (canvas.height - centerHeight) / 2;
+  context.drawImage(
+    tempCanvas,
+    sx,
+    sy,
+    centerWidth,
+    centerHeight,
+    sx - centerWidth * 0.08,
+    sy - centerHeight * 0.08,
+    centerWidth * 1.16,
+    centerHeight * 1.16
+  );
+};
+
+const applyFilterSelection = (filterId) => {
+  const selectedFilter = FILTERS[filterId] ? filterId : "normal";
+  currentFilter = selectedFilter;
+  filterButtons.forEach((button) => {
+    button.classList.toggle(
+      "filter-button--active",
+      button.dataset.filter === selectedFilter
+    );
+  });
+  const filterData = FILTERS[selectedFilter];
+  if (filterHint) {
+    filterHint.textContent = `Filtro seleccionado: ${filterData.label}. ${filterData.hint}`;
+  }
+  cameraFeed.style.filter = filterData.css;
+  photoCanvas.style.filter = filterData.css;
+};
+
+const promptFilterSelection = () => {
+  if (startButton.disabled || isChoosingFilter) {
+    return;
+  }
+  isChoosingFilter = true;
+  if (filterPanel) {
+    filterPanel.classList.remove("hidden");
+  }
+  startButton.disabled = true;
+  resetButton.disabled = false;
+  statusLabel.textContent = "Elige un filtro para empezar.";
+  updateCountdown("Filtro");
+};
+
+const cancelFilterSelection = () => {
+  if (!isChoosingFilter) {
+    return;
+  }
+  isChoosingFilter = false;
+  if (filterPanel) {
+    filterPanel.classList.add("hidden");
+  }
+  startButton.disabled = false;
+  resetButton.disabled = true;
+  statusLabel.textContent = "Pulsa “Realizar foto” para comenzar.";
+  updateCountdown("Listo");
+};
+
 const capturePhoto = () => {
   photoCount += 1;
   if (cameraFeed.videoWidth && cameraFeed.videoHeight) {
     photoCanvas.width = cameraFeed.videoWidth;
     photoCanvas.height = cameraFeed.videoHeight;
+    canvasContext.filter = FILTERS[currentFilter].css;
     canvasContext.drawImage(cameraFeed, 0, 0);
+    canvasContext.filter = "none";
+    if (currentFilter === "funhouse") {
+      applyFunhouseEffect(photoCanvas, canvasContext);
+    }
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
     photoDataUrls.push(photoCanvas.toDataURL("image/png"));
@@ -137,9 +269,13 @@ const capturePhoto = () => {
 
 const startSession = async () => {
   resetPanels();
+  isChoosingFilter = false;
+  if (filterPanel) {
+    filterPanel.classList.add("hidden");
+  }
   startButton.disabled = true;
   resetButton.disabled = false;
-  statusLabel.textContent = "Encendiendo cámara...";
+  statusLabel.textContent = `Filtro: ${FILTERS[currentFilter].label}. Encendiendo cámara...`;
   await startCamera();
   if (!cameraStream) {
     startButton.disabled = false;
@@ -173,10 +309,17 @@ const handlePublishChoice = (choice) => {
   createDownloadSession();
 };
 
-startButton.addEventListener("click", startSession);
+startButton.addEventListener("click", promptFilterSelection);
 resetButton.addEventListener("click", resetState);
 publishYes.addEventListener("click", () => handlePublishChoice(true));
 publishNo.addEventListener("click", () => handlePublishChoice(false));
+filterCancel.addEventListener("click", cancelFilterSelection);
+filterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyFilterSelection(button.dataset.filter);
+    startSession();
+  });
+});
 
 const startCamera = async () => {
   if (cameraStream) {

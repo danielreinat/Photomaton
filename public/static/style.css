@@ -163,6 +163,56 @@ body {
   justify-content: center;
 }
 
+.filter-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke);
+  background: rgba(12, 16, 20, 0.75);
+}
+
+.filter-panel__header {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+
+.filter-panel__options {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.filter-panel__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-button {
+  border: 1px solid var(--stroke);
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(15, 20, 25, 0.85);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, border 0.2s ease, background 0.2s ease;
+}
+
+.filter-button:hover {
+  transform: translateY(-2px);
+}
+
+.filter-button--active {
+  border-color: var(--accent);
+  background: rgba(183, 240, 43, 0.2);
+  color: var(--accent);
+}
+
 .button {
   border: none;
   padding: 12px 22px;
