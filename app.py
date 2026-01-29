@@ -1,6 +1,7 @@
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from pathlib import Path
+import os
 import base64
 import html
 import io
@@ -36,7 +37,10 @@ def _save_data_url(data_url: str, root: Path, folder: str = "uploads") -> str:
     return f"/{folder}/{filename}"
 
 
-def _local_base_url() -> str:
+def _resolve_base_url() -> str:
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if configured:
+        return configured.rstrip("/")
     return "http://localhost:5001"
 
 
@@ -178,7 +182,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             if not session or not session.get("images"):
                 self.send_error(404)
                 return
-            base_url = _local_base_url()
+            base_url = _resolve_base_url()
             html_payload = _render_download_page(
                 session_id, session["images"], base_url
             )
@@ -245,7 +249,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         if not isinstance(publish, bool):
             publish = False
 
-        base_url = _local_base_url()
+        base_url = _resolve_base_url()
 
         image_paths = []
         target_folder = "publicar" if publish else "uploads"
@@ -265,15 +269,19 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         _send_json(self, {"downloadUrl": download_url})
 
 
+class ReusableTCPServer(TCPServer):
+    allow_reuse_address = True
+
+
 def main() -> None:
     root = Path(__file__).parent / "public"
     handler = lambda *args, **kwargs: PhotomatonHandler(
         *args, directory=str(root), **kwargs
     )
-    with TCPServer(("", 5001), handler) as httpd:
+    with ReusableTCPServer(("", 5001), handler) as httpd:
         print(
             "Servidor listo en http://localhost:5001 "
-            f"(QR local en {_local_base_url()})"
+            f"(QR local en {_resolve_base_url()})"
         )
         httpd.serve_forever()
 

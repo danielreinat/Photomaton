@@ -35,7 +35,7 @@ python app.py
 
 Por defecto el servidor queda en `http://localhost:5001`.
 
-## Cómo hacer que el QR funcione en el móvil
+## Cómo hacer que el QR funcione en el móvil (app de escritorio)
 
 El QR apunta a la URL donde estás abriendo la app. Si la abres en `localhost`
 o en `127.0.0.1`, tu móvil **no** podrá acceder porque esas direcciones en el
@@ -51,7 +51,14 @@ http://192.168.1.50:5001
 ```
 
 3. Genera el QR desde esa URL y el móvil podrá abrirlo si está en la misma red.
-4. Si ves un aviso de que el QR apunta a localhost, repite los pasos anteriores.
+4. Si usas la app como escritorio, puedes dejar configurado:
+
+```bash
+PUBLIC_BASE_URL="http://192.168.1.50:5001" python app.py
+```
+
+5. Asegúrate de que el firewall permite conexiones al puerto 5001.
+6. Si ves un aviso de que el QR apunta a localhost, repite los pasos anteriores.
 
 ### Opción B: definir una URL pública
 
