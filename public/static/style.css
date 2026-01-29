@@ -208,50 +208,6 @@ body {
   gap: 12px;
 }
 
-.qr-grid {
-  display: grid;
-  gap: 20px;
-  align-items: center;
-}
-
-.qr-card {
-  display: grid;
-  gap: 12px;
-  justify-items: center;
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px dashed var(--stroke);
-  background: rgba(8, 10, 12, 0.35);
-}
-
-.qr-card img {
-  width: 220px;
-  height: 220px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 16, 20, 0.85);
-  object-fit: cover;
-}
-
-.qr-result {
-  font-size: 0.95rem;
-  color: var(--muted);
-  text-align: center;
-}
-
-.qr-result[data-status="success"] {
-  color: var(--accent);
-}
-
-.qr-result[data-status="error"] {
-  color: #ff7b6b;
-}
-
-.qr-meta {
-  display: grid;
-  gap: 12px;
-}
-
 input {
   flex: 1;
   min-width: 220px;
