@@ -43,6 +43,11 @@ const resetState = () => {
   if (countdownTimer) {
     clearTimeout(countdownTimer);
   }
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+  }
+  cameraFeed.srcObject = null;
   photoCount = 0;
   photoDataUrls = [];
   downloadUrl = null;
@@ -114,7 +119,6 @@ const startSession = async () => {
     resetButton.disabled = true;
     return;
   }
-  toggleCameraPreview(true);
   let remaining = 5;
   const tick = () => {
     if (remaining > 0) {
@@ -148,6 +152,7 @@ publishNo.addEventListener("click", () => handlePublishChoice(false));
 
 const startCamera = async () => {
   if (cameraStream) {
+    toggleCameraPreview(true);
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -162,11 +167,15 @@ const startCamera = async () => {
       audio: false,
     });
     cameraFeed.srcObject = cameraStream;
+    toggleCameraPreview(true);
     try {
       await cameraFeed.play();
     } catch (error) {
       statusLabel.textContent =
         "No se pudo iniciar la cámara automáticamente. Toca la pantalla y vuelve a intentarlo.";
+      cameraStream.getTracks().forEach((track) => track.stop());
+      cameraStream = null;
+      cameraFeed.srcObject = null;
       startButton.disabled = false;
       return;
     }
@@ -175,6 +184,7 @@ const startCamera = async () => {
     statusLabel.textContent =
       "No se pudo acceder a la cámara. Revisa permisos del navegador.";
     startButton.disabled = true;
+    toggleCameraPreview(false);
   }
 };
 
