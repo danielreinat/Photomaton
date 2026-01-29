@@ -13,6 +13,7 @@ const downloadStatus = document.getElementById("downloadStatus");
 const downloadLink = document.getElementById("downloadLink");
 const qrPanel = document.getElementById("qrPanel");
 const qrImage = document.getElementById("qrImage");
+const cameraPreview = document.querySelector(".camera-preview");
 
 let photoCount = 0;
 let photoDataUrls = [];
@@ -29,6 +30,13 @@ const toggleCameraPreview = (show) => {
     cameraFeed.classList.add("hidden");
     photoCanvas.classList.add("hidden");
   }
+};
+
+const toggleCaptureFocus = (active) => {
+  if (!cameraPreview) {
+    return;
+  }
+  cameraPreview.classList.toggle("camera-preview--active", active);
 };
 
 const resetPanels = () => {
@@ -61,6 +69,7 @@ const resetState = () => {
   downloadUrl = null;
   publishChoice = null;
   toggleCameraPreview(false);
+  toggleCaptureFocus(false);
   countdown.textContent = "Listo";
   statusLabel.textContent = "Pulsa “Realizar foto” para comenzar.";
   resetPanels();
@@ -103,12 +112,27 @@ const capturePhoto = () => {
       photoCanvas.classList.add("hidden");
       cameraFeed.classList.remove("hidden");
     }, 600);
-    statusLabel.textContent = "Siguiente foto en 2 segundos...";
-    updateCountdown("2");
-    countdownTimer = setTimeout(capturePhoto, 2000);
+    const startInterPhotoCountdown = (seconds) => {
+      let remaining = seconds;
+      const tick = () => {
+        updateCountdown(remaining);
+        statusLabel.textContent = `Siguiente foto en ${remaining} segundo${
+          remaining === 1 ? "" : "s"
+        }...`;
+        remaining -= 1;
+        if (remaining > 0) {
+          countdownTimer = setTimeout(tick, 1000);
+        } else {
+          countdownTimer = setTimeout(capturePhoto, 1000);
+        }
+      };
+      tick();
+    };
+    startInterPhotoCountdown(2);
   } else {
     countdownTimer = setTimeout(() => {
       resetPanels();
+      toggleCaptureFocus(false);
       publishPanel.classList.remove("hidden");
       statusLabel.textContent = "¿Quieres publicar las fotos en redes sociales?";
       updateCountdown("✓");
@@ -127,6 +151,7 @@ const startSession = async () => {
     resetButton.disabled = true;
     return;
   }
+  toggleCaptureFocus(true);
   let remaining = 5;
   const tick = () => {
     if (remaining > 0) {
@@ -161,12 +186,14 @@ publishNo.addEventListener("click", () => handlePublishChoice(false));
 const startCamera = async () => {
   if (cameraStream) {
     toggleCameraPreview(true);
+    toggleCaptureFocus(true);
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     statusLabel.textContent =
       "Tu navegador no soporta la cámara. Usa un dispositivo compatible.";
     startButton.disabled = true;
+    toggleCaptureFocus(false);
     return;
   }
   try {
@@ -185,6 +212,7 @@ const startCamera = async () => {
       cameraStream = null;
       cameraFeed.srcObject = null;
       startButton.disabled = false;
+      toggleCaptureFocus(false);
       return;
     }
     statusLabel.textContent = "Cámara lista. Pulsa “Realizar foto”.";
@@ -193,6 +221,7 @@ const startCamera = async () => {
       "No se pudo acceder a la cámara. Revisa permisos del navegador.";
     startButton.disabled = true;
     toggleCameraPreview(false);
+    toggleCaptureFocus(false);
   }
 };
 
