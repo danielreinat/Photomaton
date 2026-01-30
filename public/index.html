@@ -25,6 +25,16 @@
         <div class="camera-preview__label" id="status">Pulsa "Realizar foto" para comenzar.</div>
       </div>
 
+      <div class="camera-settings">
+        <label class="camera-settings__label" for="cameraSelect">Cámara conectada</label>
+        <select id="cameraSelect" class="camera-settings__select">
+          <option value="">Cámara por defecto</option>
+        </select>
+        <p id="cameraHint" class="helper-text">
+          Si usas una Canon, instala EOS Webcam Utility y selecciona “EOS Webcam Utility”.
+        </p>
+      </div>
+
       <div class="actions">
         <button id="startButton" class="button button--primary">Realizar foto</button>
         <button id="resetButton" class="button button--ghost" disabled>Reiniciar</button>
