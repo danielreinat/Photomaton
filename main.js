@@ -70,12 +70,19 @@ const createWindow = (serverReady = true) => {
     width: 800,
     height: 600,
   })
-main
+  const targetUrl = serverReady ? SERVER_URL : PUBLIC_BASE_URL
+  win.loadURL(targetUrl)
+  return win
 }
 
 app.whenReady().then(() => {
   startServer()
     .then(() => {
+      createWindow(true)
+    })
+    .catch((error) => {
+      console.error('No se pudo iniciar el servidor local, usando la URL pública:', error)
+      createWindow(false)
     })
 
   app.on('activate', () => {
