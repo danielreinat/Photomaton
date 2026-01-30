@@ -228,7 +228,25 @@ const handleBeforeUnload = (event) => {
     return;
   }
   event.preventDefault();
-  event.returnValue = "";
+  event.stopImmediatePropagation();
+  if (!exitRequested) {
+    exitRequested = true;
+    showSecurityModal("exit");
+  }
+};
+
+const handleCloseShortcut = (event) => {
+  if (exitApproved) {
+    return;
+  }
+  const key = event.key?.toLowerCase();
+  const wantsClose =
+    ((event.metaKey || event.ctrlKey) && key === "w") ||
+    (event.altKey && key === "f4");
+  if (!wantsClose) {
+    return;
+  }
+  event.preventDefault();
   if (!exitRequested) {
     exitRequested = true;
     showSecurityModal("exit");
@@ -562,3 +580,4 @@ const createDownloadSession = async () => {
 resetState();
 showSecurityModal("entry");
 window.addEventListener("beforeunload", handleBeforeUnload);
+window.addEventListener("keydown", handleCloseShortcut);
