@@ -75,6 +75,26 @@
     </section>
   </main>
 
+  <div id="lockOverlay" style="
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.85);
+    color:white;
+    z-index:999999;
+    font-family:system-ui;
+    align-items:center;
+    justify-content:center;">
+    <div style="background:#111; padding:24px; border-radius:12px; width:320px;">
+      <h2 style="margin:0 0 12px;">Sesión bloqueada</h2>
+      <input id="lockPwd" type="password" placeholder="Contraseña"
+        style="width:100%; padding:10px; border-radius:8px; border:1px solid #333; background:#000; color:#fff;">
+      <button id="unlockBtn" style="margin-top:10px; width:100%; padding:10px; border-radius:8px; border:none;">
+        Desbloquear
+      </button>
+      <p id="lockMsg" style="color:#ffb4b4; margin:10px 0 0;"></p>
+    </div>
+  </div>
+
   <div class="security-modal hidden" id="securityModal" aria-hidden="true">
     <div class="security-modal__card" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
       <h2 id="securityTitle">Acceso protegido</h2>
@@ -99,6 +119,53 @@
     </div>
   </div>
 
+  <script>
+    // DEMO: pon tu contraseña real en backend si quieres seguridad de verdad
+    const DEMO_PASSWORD = "1234";
+
+    const overlay = document.getElementById("lockOverlay");
+    const pwd = document.getElementById("lockPwd");
+    const msg = document.getElementById("lockMsg");
+    const btn = document.getElementById("unlockBtn");
+
+    function lock() {
+      overlay.style.display = "flex";
+      pwd.value = "";
+      msg.textContent = "";
+      setTimeout(() => pwd.focus(), 50);
+    }
+
+    function unlock() {
+      if (pwd.value === DEMO_PASSWORD) {
+        overlay.style.display = "none";
+      } else {
+        msg.textContent = "Contraseña incorrecta";
+        pwd.select();
+      }
+    }
+
+    btn.addEventListener("click", unlock);
+    pwd.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") unlock();
+    });
+
+    // Bloquea cuando cambias de pestaña o minimizas
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") lock();
+    });
+    window.addEventListener("blur", lock);
+
+    // Bloquea por inactividad (2 min)
+    let timer;
+    function resetTimer() {
+      clearTimeout(timer);
+      timer = setTimeout(lock, 2 * 60 * 1000);
+    }
+    ["mousemove","keydown","click","scroll","touchstart"].forEach(ev =>
+      window.addEventListener(ev, resetTimer, { passive: true })
+    );
+    resetTimer();
+  </script>
   <script src="static/app.js"></script>
 </body>
 </html>
