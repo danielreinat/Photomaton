@@ -63,7 +63,7 @@ const drawWatermark = (context, width, height) => {
   context.restore();
 };
 
-const drawCameraFrame = (context, video, filter = "none") => {
+const drawCameraFrame = (context, video, filter = "none", targetCanvas = photoCanvas) => {
   const { videoWidth, videoHeight } = video;
   if (!videoWidth || !videoHeight) {
     return;
@@ -82,12 +82,12 @@ const drawCameraFrame = (context, video, filter = "none") => {
     cropHeight = Math.round(videoWidth / PHOTO_ASPECT_RATIO);
     sourceY = Math.round((videoHeight - cropHeight) / 2);
   }
-  if (photoCanvas.width !== cropWidth || photoCanvas.height !== cropHeight) {
-    photoCanvas.width = cropWidth;
-    photoCanvas.height = cropHeight;
+  if (targetCanvas.width !== cropWidth || targetCanvas.height !== cropHeight) {
+    targetCanvas.width = cropWidth;
+    targetCanvas.height = cropHeight;
   }
-  const canvasWidth = photoCanvas.width;
-  const canvasHeight = photoCanvas.height;
+  const canvasWidth = targetCanvas.width;
+  const canvasHeight = targetCanvas.height;
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
   context.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -223,11 +223,16 @@ const cancelFilterSelection = () => {
 const capturePhoto = () => {
   photoCount += 1;
   if (cameraFeed.videoWidth && cameraFeed.videoHeight) {
-    drawCameraFrame(canvasContext, cameraFeed, FILTERS[currentFilter].css);
-    drawWatermark(canvasContext, photoCanvas.width, photoCanvas.height);
+    drawCameraFrame(canvasContext, cameraFeed, FILTERS[currentFilter].css, photoCanvas);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
-    photoDataUrls.push(photoCanvas.toDataURL("image/jpeg", 0.95));
+    const outputCanvas = document.createElement("canvas");
+    const outputContext = outputCanvas.getContext("2d");
+    if (outputContext) {
+      drawCameraFrame(outputContext, cameraFeed, FILTERS[currentFilter].css, outputCanvas);
+      drawWatermark(outputContext, outputCanvas.width, outputCanvas.height);
+      photoDataUrls.push(outputCanvas.toDataURL("image/jpeg", 0.95));
+    }
   }
   const now = new Date();
   const timestamp = now.toLocaleTimeString("es-ES", {
