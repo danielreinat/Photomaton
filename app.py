@@ -9,6 +9,7 @@ import io
 import json
 import mimetypes
 import re
+import socket
 import time
 import uuid
 import urllib.parse
@@ -146,10 +147,45 @@ def _store_photos(images: list[str], root: Path, publish: bool) -> list[str]:
     return saved_paths
 
 
-def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
+def _get_tunnel_url() -> str | None:
+    configured = os.getenv("PUBLIC_TUNNEL_URL", "").strip()
     if configured:
         return configured.rstrip("/")
+    api_url = os.getenv("NGROK_API_URL", "http://127.0.0.1:4040/api/tunnels").strip()
+    if not api_url:
+        return None
+    try:
+        with urllib.request.urlopen(api_url, timeout=3) as response:
+            payload = response.read().decode("utf-8")
+        data = json.loads(payload)
+    except Exception:
+        return None
+    for tunnel in data.get("tunnels", []):
+        public_url = tunnel.get("public_url")
+        if isinstance(public_url, str) and public_url.startswith("https://"):
+            return public_url.rstrip("/")
+    return None
+
+
+def _get_local_ip() -> str | None:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            return sock.getsockname()[0]
+    except Exception:
+        return None
+
+
+def _resolve_base_url() -> str:
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if configured:
+        return configured.rstrip("/")
+    tunnel_url = _get_tunnel_url()
+    if tunnel_url:
+        return tunnel_url
+    local_ip = _get_local_ip()
+    if local_ip:
+        return f"http://{local_ip}:5001"
     return "http://localhost:5001"
 
 
