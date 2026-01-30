@@ -6,7 +6,7 @@
   <title>Photomaton Studio</title>
   <link rel="stylesheet" href="static/style.css" />
 </head>
-<body>
+<body data-access-password="1234">
   <div class="background-glow"></div>
   <main class="app">
     <header class="app__header">
@@ -65,6 +65,30 @@
       </div>
     </section>
   </main>
+
+  <div class="security-modal hidden" id="securityModal" aria-hidden="true">
+    <div class="security-modal__card" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
+      <h2 id="securityTitle">Acceso protegido</h2>
+      <p id="securityMessage" class="helper-text">Introduce la contraseña para continuar.</p>
+      <div class="input-group">
+        <input
+          type="password"
+          id="securityPassword"
+          placeholder="Contraseña"
+          autocomplete="off"
+          inputmode="text"
+        />
+        <button id="securitySubmit" class="button button--primary">Entrar</button>
+      </div>
+      <p id="securityError" class="helper-text helper-text--warning hidden">
+        Contraseña incorrecta. Inténtalo de nuevo.
+      </p>
+      <div class="security-modal__actions hidden" id="securityExitActions">
+        <button id="securityStay" class="button button--ghost">Volver</button>
+        <button id="securityExit" class="button button--primary">Salir</button>
+      </div>
+    </div>
+  </div>
 
   <script src="static/app.js"></script>
 </body>

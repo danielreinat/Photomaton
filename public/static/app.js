@@ -17,6 +17,15 @@ const filterPanel = document.getElementById("filterPanel");
 const filterHint = document.getElementById("filterHint");
 const filterCancel = document.getElementById("filterCancel");
 const filterButtons = document.querySelectorAll("[data-filter]");
+const securityModal = document.getElementById("securityModal");
+const securityTitle = document.getElementById("securityTitle");
+const securityMessage = document.getElementById("securityMessage");
+const securityPasswordInput = document.getElementById("securityPassword");
+const securitySubmit = document.getElementById("securitySubmit");
+const securityError = document.getElementById("securityError");
+const securityExitActions = document.getElementById("securityExitActions");
+const securityStay = document.getElementById("securityStay");
+const securityExit = document.getElementById("securityExit");
 
 let photoCount = 0;
 let photoDataUrls = [];
@@ -26,8 +35,12 @@ let cameraStream = null;
 let publishChoice = null;
 let currentFilter = "normal";
 let isChoosingFilter = false;
+let securityUnlocked = false;
+let exitApproved = false;
+let securityMode = "entry";
 
 const PHOTO_ASPECT_RATIO = 3 / 2;
+const ACCESS_PASSWORD = document.body?.dataset.accessPassword?.trim() || "1234";
 
 const FILTERS = {
   normal: {
@@ -104,6 +117,115 @@ const drawCameraFrame = (context, video, filter = "none", targetCanvas = photoCa
     canvasHeight
   );
   context.filter = "none";
+};
+
+const setSecurityMode = (mode) => {
+  securityMode = mode;
+  if (!securityModal) {
+    return;
+  }
+  if (mode === "exit") {
+    if (securityTitle) {
+      securityTitle.textContent = "Salida protegida";
+    }
+    if (securityMessage) {
+      securityMessage.textContent =
+        "Introduce la contraseña para cerrar la pestaña o salir de la ventana.";
+    }
+    if (securitySubmit) {
+      securitySubmit.classList.add("hidden");
+    }
+    if (securityExitActions) {
+      securityExitActions.classList.remove("hidden");
+    }
+  } else {
+    if (securityTitle) {
+      securityTitle.textContent = "Acceso protegido";
+    }
+    if (securityMessage) {
+      securityMessage.textContent = "Introduce la contraseña para continuar.";
+    }
+    if (securitySubmit) {
+      securitySubmit.textContent = "Entrar";
+      securitySubmit.classList.remove("hidden");
+    }
+    if (securityExitActions) {
+      securityExitActions.classList.add("hidden");
+    }
+  }
+};
+
+const showSecurityModal = (mode = "entry") => {
+  if (!securityModal) {
+    return;
+  }
+  setSecurityMode(mode);
+  securityModal.classList.remove("hidden");
+  securityModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("security-locked");
+  if (securityPasswordInput) {
+    securityPasswordInput.value = "";
+    securityPasswordInput.focus();
+  }
+  if (securityError) {
+    securityError.classList.add("hidden");
+  }
+};
+
+const hideSecurityModal = () => {
+  if (!securityModal) {
+    return;
+  }
+  securityModal.classList.add("hidden");
+  securityModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("security-locked");
+};
+
+const validateSecurityPassword = () => {
+  if (!securityPasswordInput) {
+    return false;
+  }
+  const entered = securityPasswordInput.value.trim();
+  return entered === ACCESS_PASSWORD;
+};
+
+const handleSecuritySuccess = () => {
+  if (securityMode === "exit") {
+    exitApproved = true;
+    hideSecurityModal();
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.close();
+  } else {
+    securityUnlocked = true;
+    hideSecurityModal();
+  }
+};
+
+const handleSecuritySubmit = () => {
+  if (validateSecurityPassword()) {
+    handleSecuritySuccess();
+    return;
+  }
+  if (securityError) {
+    securityError.classList.remove("hidden");
+  }
+  if (securityPasswordInput) {
+    securityPasswordInput.value = "";
+    securityPasswordInput.focus();
+  }
+};
+
+const handleBeforeUnload = (event) => {
+  if (exitApproved) {
+    return;
+  }
+  event.preventDefault();
+  event.returnValue = "";
+  setTimeout(() => {
+    if (!exitApproved) {
+      showSecurityModal("exit");
+    }
+  }, 0);
 };
 
 const toggleCameraPreview = (show) => {
@@ -330,6 +452,29 @@ filterButtons.forEach((button) => {
   });
 });
 
+if (securitySubmit) {
+  securitySubmit.addEventListener("click", handleSecuritySubmit);
+}
+
+if (securityPasswordInput) {
+  securityPasswordInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSecuritySubmit();
+    }
+  });
+}
+
+if (securityStay) {
+  securityStay.addEventListener("click", () => {
+    hideSecurityModal();
+  });
+}
+
+if (securityExit) {
+  securityExit.addEventListener("click", handleSecuritySubmit);
+}
+
 const startCamera = async () => {
   if (cameraStream) {
     toggleCameraPreview(true);
@@ -407,3 +552,5 @@ const createDownloadSession = async () => {
 };
 
 resetState();
+showSecurityModal("entry");
+window.addEventListener("beforeunload", handleBeforeUnload);
