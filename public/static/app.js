@@ -38,6 +38,7 @@ let isChoosingFilter = false;
 let securityUnlocked = false;
 let exitApproved = false;
 let securityMode = "entry";
+let exitRequested = false;
 
 const PHOTO_ASPECT_RATIO = 3 / 2;
 const ACCESS_PASSWORD = document.body?.dataset.accessPassword?.trim() || "1234";
@@ -192,6 +193,7 @@ const validateSecurityPassword = () => {
 const handleSecuritySuccess = () => {
   if (securityMode === "exit") {
     exitApproved = true;
+    exitRequested = false;
     hideSecurityModal();
     window.removeEventListener("beforeunload", handleBeforeUnload);
     const attemptClose = () => {
@@ -227,11 +229,10 @@ const handleBeforeUnload = (event) => {
   }
   event.preventDefault();
   event.returnValue = "";
-  setTimeout(() => {
-    if (!exitApproved) {
-      showSecurityModal("exit");
-    }
-  }, 0);
+  if (!exitRequested) {
+    exitRequested = true;
+    showSecurityModal("exit");
+  }
 };
 
 const toggleCameraPreview = (show) => {
@@ -473,6 +474,7 @@ if (securityPasswordInput) {
 
 if (securityStay) {
   securityStay.addEventListener("click", () => {
+    exitRequested = false;
     hideSecurityModal();
   });
 }
