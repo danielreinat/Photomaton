@@ -17,8 +17,6 @@ const filterPanel = document.getElementById("filterPanel");
 const filterHint = document.getElementById("filterHint");
 const filterCancel = document.getElementById("filterCancel");
 const filterButtons = document.querySelectorAll("[data-filter]");
-const cameraSelect = document.getElementById("cameraSelect");
-const cameraHint = document.getElementById("cameraHint");
 
 let photoCount = 0;
 let photoDataUrls = [];
@@ -28,7 +26,6 @@ let cameraStream = null;
 let publishChoice = null;
 let currentFilter = "normal";
 let isChoosingFilter = false;
-let selectedDeviceId = "";
 
 const FILTERS = {
   normal: {
@@ -51,14 +48,14 @@ const drawWatermark = (context, width, height) => {
   if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
     return;
   }
-  const scale = Math.max(0.12, Math.min(0.22, Math.min(width, height) / 2200));
+  const maxWidth = Math.min(width * 1, 500);
+  const scale = maxWidth / watermarkImage.naturalWidth;
   const drawWidth = watermarkImage.naturalWidth * scale;
   const drawHeight = watermarkImage.naturalHeight * scale;
   const x = (width - drawWidth) / 2;
-  const margin = Math.max(height * 0.04, 24);
-  const y = height - drawHeight - margin;
+  const y = height - drawHeight - Math.max(height * 1, 500);
   context.save();
-  context.globalAlpha = 0.85;
+  context.globalAlpha = 1; 
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
   context.restore();
 };
@@ -150,94 +147,6 @@ const PHOTO_CONSTRAINTS = {
   frameRate: { ideal: 30, max: 60 },
 };
 
-const updateCameraHint = (message, tone = "neutral") => {
-  if (!cameraHint) {
-    return;
-  }
-  cameraHint.textContent = message;
-  cameraHint.classList.toggle("helper-text--warning", tone === "warning");
-};
-
-const buildVideoConstraints = () => {
-  if (selectedDeviceId) {
-    const { facingMode, ...rest } = PHOTO_CONSTRAINTS;
-    return { ...rest, deviceId: { exact: selectedDeviceId } };
-  }
-  return PHOTO_CONSTRAINTS;
-};
-
-const populateCameraOptions = (devices) => {
-  if (!cameraSelect) {
-    return;
-  }
-  const currentValue = cameraSelect.value;
-  cameraSelect.innerHTML = "";
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Cámara por defecto";
-  cameraSelect.appendChild(defaultOption);
-  devices.forEach((device) => {
-    const option = document.createElement("option");
-    option.value = device.deviceId;
-    option.textContent = device.label || "Cámara externa";
-    cameraSelect.appendChild(option);
-  });
-  if (currentValue && devices.some((device) => device.deviceId === currentValue)) {
-    cameraSelect.value = currentValue;
-    selectedDeviceId = currentValue;
-    return;
-  }
-  const eosDevice = devices.find((device) =>
-    device.label.toLowerCase().includes("eos webcam utility")
-  );
-  if (eosDevice) {
-    cameraSelect.value = eosDevice.deviceId;
-    selectedDeviceId = eosDevice.deviceId;
-    updateCameraHint(
-      "EOS Webcam Utility detectado. Se usará la Canon conectada.",
-      "neutral"
-    );
-    return;
-  }
-  const canonDevice = devices.find((device) =>
-    device.label.toLowerCase().includes("canon")
-  );
-  if (canonDevice) {
-    cameraSelect.value = canonDevice.deviceId;
-    selectedDeviceId = canonDevice.deviceId;
-    updateCameraHint(
-      "Cámara Canon detectada. Puedes cambiar a EOS Webcam Utility si aparece en la lista.",
-      "neutral"
-    );
-    return;
-  }
-  if (!devices.length) {
-    updateCameraHint(
-      "No se detectan cámaras aún. Conecta la Canon y abre EOS Webcam Utility.",
-      "warning"
-    );
-  }
-};
-
-const refreshCameraDevices = async () => {
-  if (!navigator.mediaDevices?.enumerateDevices) {
-    updateCameraHint(
-      "Tu navegador no permite listar cámaras. Se usará la cámara por defecto.",
-      "warning"
-    );
-    return;
-  }
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter((device) => device.kind === "videoinput");
-    populateCameraOptions(videoDevices);
-  } catch (error) {
-    updateCameraHint(
-      "No se pudieron listar las cámaras disponibles. Usa la opción por defecto.",
-      "warning"
-    );
-  }
-};
 
 const applyFilterSelection = (filterId) => {
   const selectedFilter = FILTERS[filterId] ? filterId : "normal";
@@ -405,9 +314,8 @@ const startCamera = async () => {
     return;
   }
   try {
-    await refreshCameraDevices();
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: buildVideoConstraints(),
+      video: PHOTO_CONSTRAINTS,
       audio: false,
     });
     cameraFeed.srcObject = cameraStream;
@@ -425,40 +333,9 @@ const startCamera = async () => {
       return;
     }
     statusLabel.textContent = "Cámara lista. Pulsa “Realizar foto”.";
-    await refreshCameraDevices();
   } catch (error) {
-    if (selectedDeviceId) {
-      selectedDeviceId = "";
-      if (cameraSelect) {
-        cameraSelect.value = "";
-      }
-      try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-          video: PHOTO_CONSTRAINTS,
-          audio: false,
-        });
-        cameraFeed.srcObject = cameraStream;
-        toggleCameraPreview(true);
-        await cameraFeed.play();
-        statusLabel.textContent =
-          "Cámara lista con el dispositivo por defecto.";
-        updateCameraHint(
-          "No se pudo acceder a la cámara seleccionada. Usando la cámara por defecto.",
-          "warning"
-        );
-        startButton.disabled = false;
-        toggleCaptureFocus(true);
-        return;
-      } catch (fallbackError) {
-        // Continue to final error handling below.
-      }
-    }
     statusLabel.textContent =
       "No se pudo acceder a la cámara. Revisa permisos del navegador.";
-    updateCameraHint(
-      "No se pudo acceder a la cámara. Revisa permisos o instala EOS Webcam Utility.",
-      "warning"
-    );
     startButton.disabled = true;
     toggleCameraPreview(false);
     toggleCaptureFocus(false);
@@ -500,33 +377,3 @@ const createDownloadSession = async () => {
 };
 
 resetState();
-
-if (cameraSelect) {
-  cameraSelect.addEventListener("change", () => {
-    selectedDeviceId = cameraSelect.value;
-    updateCameraHint(
-      selectedDeviceId
-        ? "Cámara seleccionada. Listo para iniciar."
-        : "Se usará la cámara por defecto del sistema.",
-      "neutral"
-    );
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-      cameraStream = null;
-      cameraFeed.srcObject = null;
-      toggleCameraPreview(false);
-      toggleCaptureFocus(false);
-      statusLabel.textContent = "Cámara actualizada. Pulsa “Realizar foto”.";
-      startButton.disabled = false;
-      resetButton.disabled = false;
-    }
-  });
-}
-
-if (navigator.mediaDevices?.addEventListener) {
-  navigator.mediaDevices.addEventListener("devicechange", () => {
-    refreshCameraDevices();
-  });
-}
-
-refreshCameraDevices();
