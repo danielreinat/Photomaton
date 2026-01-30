@@ -229,6 +229,7 @@ const handleBeforeUnload = (event) => {
   }
   event.preventDefault();
   event.stopImmediatePropagation();
+  event.returnValue = "";
   if (!exitRequested) {
     exitRequested = true;
     showSecurityModal("exit");
