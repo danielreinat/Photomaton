@@ -2,7 +2,6 @@ const { app, BrowserWindow } = require('electron/main')
 const path = require('path')
 const { spawn } = require('child_process')
 const http = require('http')
-
 let serverProcess = null
 const SERVER_PORT = 5001
 const SERVER_URL = `http://localhost:${SERVER_PORT}`
@@ -71,29 +70,12 @@ const createWindow = (serverReady = true) => {
     width: 800,
     height: 600,
   })
-
-  const loadLocalFile = () => {
-    win.loadFile(path.join(__dirname, 'public', 'index.html'))
-  }
-
-  if (serverReady) {
-    win.webContents.once('did-fail-load', () => {
-      loadLocalFile()
-    })
-    win.loadURL(SERVER_URL)
-  } else {
-    loadLocalFile()
-  }
+main
 }
 
 app.whenReady().then(() => {
   startServer()
     .then(() => {
-      createWindow(true)
-    })
-    .catch((error) => {
-      console.error('No se pudo iniciar el servidor local:', error)
-      createWindow(false)
     })
 
   app.on('activate', () => {
