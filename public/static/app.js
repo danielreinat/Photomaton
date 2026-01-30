@@ -50,19 +50,20 @@ const drawWatermark = (context, width, height) => {
   if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
     return;
   }
-  const maxWidth = Math.min(width * 1, 500);
+  const maxWidth = Math.min(width * 0.55, 360);
   const scale = maxWidth / watermarkImage.naturalWidth;
   const drawWidth = watermarkImage.naturalWidth * scale;
   const drawHeight = watermarkImage.naturalHeight * scale;
   const x = (width - drawWidth) / 2;
-  const y = height - drawHeight - Math.max(height * 1, 500);
+  const margin = Math.max(height * 0.04, 24);
+  const y = Math.max(height - drawHeight - margin, margin);
   context.save();
   context.globalAlpha = 0.85; 
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
   context.restore();
 };
 
-const drawCameraFrame = (context, video) => {
+const drawCameraFrame = (context, video, filter = "none") => {
   const { videoWidth, videoHeight } = video;
   if (!videoWidth || !videoHeight) {
     return;
@@ -90,6 +91,7 @@ const drawCameraFrame = (context, video) => {
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
   context.clearRect(0, 0, canvasWidth, canvasHeight);
+  context.filter = filter;
   context.drawImage(
     video,
     sourceX,
@@ -101,6 +103,7 @@ const drawCameraFrame = (context, video) => {
     canvasWidth,
     canvasHeight
   );
+  context.filter = "none";
 };
 
 const toggleCameraPreview = (show) => {
@@ -220,9 +223,7 @@ const cancelFilterSelection = () => {
 const capturePhoto = () => {
   photoCount += 1;
   if (cameraFeed.videoWidth && cameraFeed.videoHeight) {
-    canvasContext.filter = FILTERS[currentFilter].css;
-    drawCameraFrame(canvasContext, cameraFeed);
-    canvasContext.filter = "none";
+    drawCameraFrame(canvasContext, cameraFeed, FILTERS[currentFilter].css);
     drawWatermark(canvasContext, photoCanvas.width, photoCanvas.height);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
