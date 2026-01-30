@@ -102,7 +102,7 @@ body {
 .camera-preview__video,
 .camera-preview__canvas {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 3 / 2;
   height: auto;
   border-radius: 18px;
   display: block;
@@ -134,7 +134,7 @@ body {
 
 .camera-preview--active .camera-preview__video,
 .camera-preview--active .camera-preview__canvas {
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 3 / 2;
 }
 
 .camera-preview--active .camera-preview__ring {
