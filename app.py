@@ -177,33 +177,13 @@ def _get_local_ip() -> str | None:
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
-    if configured:  
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if configured:
         return configured.rstrip("/")
-    tunnel_url = _get_tunnel_url()
-    if tunnel_url:
-        return tunnel_url
-    local_ip = _get_local_ip()
-    if local_ip:
-        return f"http://{local_ip}:5001"
-    return "http://localhost:5001"
+    return ""
 
 
 def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
-    if configured:
-        return configured.rstrip("/")
-    forwarded_proto = handler.headers.get("X-Forwarded-Proto", "").split(",")[0].strip()
-    forwarded_host = handler.headers.get("X-Forwarded-Host", "").split(",")[0].strip()
-    if forwarded_host:
-        scheme = forwarded_proto or "https"
-        return f"{scheme}://{forwarded_host}"
-    host = handler.headers.get("Host", "").strip()
-    if host:
-        scheme = "http"
-        if forwarded_proto:
-            scheme = forwarded_proto
-        return f"{scheme}://{host}"
     return _resolve_base_url()
 
 
