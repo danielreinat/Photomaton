@@ -30,6 +30,10 @@ body {
   color: var(--text);
 }
 
+.security-locked {
+  overflow: hidden;
+}
+
 .background-glow {
   position: fixed;
   inset: 0;
@@ -323,6 +327,36 @@ input::placeholder {
 
 .hidden {
   display: none;
+}
+
+.security-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 14, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 10;
+  backdrop-filter: blur(6px);
+}
+
+.security-modal__card {
+  width: min(480px, 92vw);
+  background: var(--card);
+  border-radius: 20px;
+  padding: 28px;
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.security-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
 }
 
 @media (max-width: 600px) {
