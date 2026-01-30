@@ -132,14 +132,18 @@ PUBLIC_BASE_URL="http://192.168.1.50:5001" python app.py
 
 ### Opción C: definir una URL pública
 
-Si tienes la app publicada o accesible mediante un dominio, define
-`PUBLIC_BASE_URL` antes de arrancar el servidor:
+Si tienes la app publicada o accesible mediante un dominio, puedes definir
+`PUBLIC_BASE_URL` antes de arrancar el servidor para sobrescribir el valor
+por defecto:
 
 ```bash
 PUBLIC_BASE_URL="https://mi-dominio.com" python app.py
 ```
 
 El QR usará esa URL pública para que el móvil abra el enlace de descarga.
+
+> Nota: el valor por defecto actual es `https://photomaton-5b71.onrender.com`
+> y puede cambiarse editando la constante `DEFAULT_PUBLIC_BASE_URL` en `app.py`.
 
 ### Comprobar que el QR es accesible
 
