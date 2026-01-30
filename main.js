@@ -6,7 +6,6 @@ const http = require('http')
 let serverProcess = null
 const SERVER_PORT = 5001
 const SERVER_URL = `http://localhost:${SERVER_PORT}`
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://photomaton-5b71.onrender.com'
 
 const waitForServer = (timeoutMs = 8000) => new Promise((resolve, reject) => {
   const start = Date.now()
@@ -43,8 +42,7 @@ const startServer = async () => {
   const serverPath = path.join(app.getAppPath(), 'app.py')
   serverProcess = spawn(pythonCommand, [serverPath], {
     env: {
-      ...process.env,
-      PUBLIC_BASE_URL,
+      ...process.env,ain
     },
     stdio: 'inherit',
   })
