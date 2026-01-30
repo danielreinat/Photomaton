@@ -27,6 +27,8 @@ let publishChoice = null;
 let currentFilter = "normal";
 let isChoosingFilter = false;
 
+const PHOTO_ASPECT_RATIO = 2 / 3;
+
 const FILTERS = {
   normal: {
     label: "Normal",
@@ -65,19 +67,40 @@ const drawCameraFrame = (context, video) => {
   if (!videoWidth || !videoHeight) {
     return;
   }
-  if (photoCanvas.width !== videoWidth || photoCanvas.height !== videoHeight) {
-    photoCanvas.width = videoWidth;
-    photoCanvas.height = videoHeight;
+  const sourceRatio = videoWidth / videoHeight;
+  let cropWidth = videoWidth;
+  let cropHeight = videoHeight;
+  let sourceX = 0;
+  let sourceY = 0;
+  if (sourceRatio > PHOTO_ASPECT_RATIO) {
+    cropHeight = videoHeight;
+    cropWidth = Math.round(videoHeight * PHOTO_ASPECT_RATIO);
+    sourceX = Math.round((videoWidth - cropWidth) / 2);
+  } else if (sourceRatio < PHOTO_ASPECT_RATIO) {
+    cropWidth = videoWidth;
+    cropHeight = Math.round(videoWidth / PHOTO_ASPECT_RATIO);
+    sourceY = Math.round((videoHeight - cropHeight) / 2);
+  }
+  if (photoCanvas.width !== cropWidth || photoCanvas.height !== cropHeight) {
+    photoCanvas.width = cropWidth;
+    photoCanvas.height = cropHeight;
   }
   const canvasWidth = photoCanvas.width;
   const canvasHeight = photoCanvas.height;
-  const scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
-  const drawWidth = videoWidth * scale;
-  const drawHeight = videoHeight * scale;
-  const x = (canvasWidth - drawWidth) / 2;
-  const y = (canvasHeight - drawHeight) / 2;
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   context.clearRect(0, 0, canvasWidth, canvasHeight);
-  context.drawImage(video, x, y, drawWidth, drawHeight);
+  context.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    canvasWidth,
+    canvasHeight
+  );
 };
 
 const toggleCameraPreview = (show) => {
@@ -142,8 +165,9 @@ const updateCountdown = (value) => {
 
 const PHOTO_CONSTRAINTS = {
   facingMode: "user",
-  width: { ideal: 4096 },
-  height: { ideal: 2160 },
+  aspectRatio: PHOTO_ASPECT_RATIO,
+  width: { ideal: 3000 },
+  height: { ideal: 4500 },
   frameRate: { ideal: 30, max: 60 },
 };
 
@@ -202,7 +226,7 @@ const capturePhoto = () => {
     drawWatermark(canvasContext, photoCanvas.width, photoCanvas.height);
     photoCanvas.classList.remove("hidden");
     cameraFeed.classList.add("hidden");
-    photoDataUrls.push(photoCanvas.toDataURL("image/png"));
+    photoDataUrls.push(photoCanvas.toDataURL("image/jpeg", 0.95));
   }
   const now = new Date();
   const timestamp = now.toLocaleTimeString("es-ES", {
