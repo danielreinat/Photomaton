@@ -5,7 +5,7 @@ const http = require('http')
 let serverProcess = null
 const SERVER_PORT = 5001
 const SERVER_URL = `http://localhost:${SERVER_PORT}`
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://photomaton-5b71.onrender.com'
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || ''
 
 const waitForServer = (timeoutMs = 8000) => new Promise((resolve, reject) => {
   const start = Date.now()
@@ -70,7 +70,7 @@ const createWindow = (serverReady = true) => {
     width: 800,
     height: 600,
   })
-  const targetUrl = serverReady ? SERVER_URL : PUBLIC_BASE_URL
+  const targetUrl = serverReady ? SERVER_URL : (PUBLIC_BASE_URL || SERVER_URL)
   win.loadURL(targetUrl)
   return win
 }
