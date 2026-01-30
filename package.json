@@ -1,0 +1,23 @@
+{
+  "name": "photomaton",
+  "version": "1.0.0",
+  "description": "Esto es un programa que realiza fotos y las envia al momento",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielreinat/photomaton.git"
+  },
+  "author": "Daniel Reina",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/danielreinat/photomaton/issues"
+  },
+  "homepage": "https://github.com/danielreinat/photomaton#readme",
+  "devDependencies": {
+    "electron": "^40.1.0"
+  }
+}
