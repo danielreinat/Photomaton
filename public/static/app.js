@@ -55,7 +55,7 @@ const drawWatermark = (context, width, height) => {
   const x = (width - drawWidth) / 2;
   const y = height - drawHeight - Math.max(height * 1, 500);
   context.save();
-  context.globalAlpha = 1; 
+  context.globalAlpha = 0.85; 
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
   context.restore();
 };
