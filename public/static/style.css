@@ -164,30 +164,6 @@ body {
   justify-content: center;
 }
 
-.camera-settings {
-  display: grid;
-  gap: 10px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  border: 1px solid var(--stroke);
-  background: rgba(10, 14, 18, 0.7);
-}
-
-.camera-settings__label {
-  font-weight: 600;
-  color: var(--text);
-}
-
-.camera-settings__select {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--stroke);
-  font-size: 1rem;
-  background: rgba(12, 16, 20, 0.85);
-  color: var(--text);
-}
-
 .filter-panel {
   display: grid;
   gap: 16px;

@@ -175,12 +175,13 @@ def _load_session(session_id: str, root: Path) -> dict | None:
 
 def _render_download_page(session_id: str, images: list[str], base_url: str | None) -> str:
     asset_prefix = f"{base_url}/static" if base_url else "/static"
+    link_prefix = base_url or ""
     items_html = []
     for index, image_path in enumerate(images, start=1):
         safe_path = html.escape(image_path, quote=True)
         filename = Path(image_path).name
         safe_filename = html.escape(filename, quote=True)
-        download_link = f"/download-photo/{session_id}/{index}"
+        download_link = f"{link_prefix}/download-photo/{session_id}/{index}"
         items_html.append(
             f"""
             <li class="download-item">
@@ -208,7 +209,7 @@ def _render_download_page(session_id: str, images: list[str], base_url: str | No
       <header>
         <h1>Descarga tus fotos</h1>
         <div class="download-actions">
-          <a class="button" id="downloadAll" href="/download-all/{session_id}">
+          <a class="button" id="downloadAll" href="{link_prefix}/download-all/{session_id}">
             Descargar todas
           </a>
         </div>
