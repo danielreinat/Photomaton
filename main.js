@@ -2,10 +2,10 @@ const { app, BrowserWindow } = require('electron/main')
 const path = require('path')
 const { spawn } = require('child_process')
 const http = require('http')
-
 let serverProcess = null
 const SERVER_PORT = 5001
 const SERVER_URL = `http://localhost:${SERVER_PORT}`
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://photomaton-5b71.onrender.com'
 
 const waitForServer = (timeoutMs = 8000) => new Promise((resolve, reject) => {
   const start = Date.now()
@@ -42,9 +42,14 @@ const startServer = async () => {
   const serverPath = path.join(app.getAppPath(), 'app.py')
   serverProcess = spawn(pythonCommand, [serverPath], {
     env: {
-      ...process.env,ain
+      ...process.env,
+      PUBLIC_BASE_URL,
     },
     stdio: 'inherit',
+  })
+  serverProcess.on('error', (error) => {
+    console.error('Error iniciando el servidor local:', error)
+    serverProcess = null
   })
   serverProcess.on('exit', () => {
     serverProcess = null
@@ -60,23 +65,17 @@ const stopServer = () => {
   serverProcess = null
 }
 
-const createWindow = () => {
+const createWindow = (serverReady = true) => {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
   })
-
-  win.loadURL(SERVER_URL)
+main
 }
 
 app.whenReady().then(() => {
   startServer()
     .then(() => {
-      createWindow()
-    })
-    .catch((error) => {
-      console.error('No se pudo iniciar el servidor local:', error)
-      createWindow()
     })
 
   app.on('activate', () => {
