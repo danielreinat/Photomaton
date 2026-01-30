@@ -325,10 +325,6 @@ input::placeholder {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
 }
 
-.hidden {
-  display: none;
-}
-
 .security-modal {
   position: fixed;
   inset: 0;
@@ -357,6 +353,10 @@ input::placeholder {
   flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
+}
+
+.hidden {
+  display: none;
 }
 
 @media (max-width: 600px) {
