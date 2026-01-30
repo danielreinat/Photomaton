@@ -176,8 +176,11 @@ def _get_local_ip() -> str | None:
         return None
 
 
+DEFAULT_PUBLIC_BASE_URL = "https://photomaton-5b71.onrender.com"
+
+
 def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    configured = os.getenv("PUBLIC_BASE_URL", DEFAULT_PUBLIC_BASE_URL).strip()
     if configured:
         return configured.rstrip("/")
     return ""
