@@ -5,7 +5,6 @@ const http = require('http')
 let serverProcess = null
 const SERVER_PORT = 5001
 const SERVER_URL = `http://localhost:${SERVER_PORT}`
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || ''
 
 const waitForServer = (timeoutMs = 8000) => new Promise((resolve, reject) => {
   const start = Date.now()
@@ -43,7 +42,6 @@ const startServer = async () => {
   serverProcess = spawn(pythonCommand, [serverPath], {
     env: {
       ...process.env,
-      PUBLIC_BASE_URL,
     },
     stdio: 'inherit',
   })
@@ -65,24 +63,23 @@ const stopServer = () => {
   serverProcess = null
 }
 
-const createWindow = (serverReady = true) => {
+const createWindow = () => {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
   })
-  const targetUrl = serverReady ? SERVER_URL : (PUBLIC_BASE_URL || SERVER_URL)
-  win.loadURL(targetUrl)
+  win.loadURL(SERVER_URL)
   return win
 }
 
 app.whenReady().then(() => {
   startServer()
     .then(() => {
-      createWindow(true)
+      createWindow()
     })
     .catch((error) => {
-      console.error('No se pudo iniciar el servidor local, usando la URL pública:', error)
-      createWindow(false)
+      console.error('No se pudo iniciar el servidor local:', error)
+      createWindow()
     })
 
   app.on('activate', () => {

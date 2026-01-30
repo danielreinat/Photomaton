@@ -9,7 +9,6 @@ import io
 import json
 import mimetypes
 import re
-import socket
 import time
 import uuid
 import urllib.parse
@@ -167,27 +166,8 @@ def _get_tunnel_url() -> str | None:
     return None
 
 
-def _get_local_ip() -> str | None:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.connect(("8.8.8.8", 80))
-            return sock.getsockname()[0]
-    except Exception:
-        return None
-
-
-DEFAULT_PUBLIC_BASE_URL = "https://photomaton-5b71.onrender.com"
-
-
-def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", DEFAULT_PUBLIC_BASE_URL).strip()
-    if configured:
-        return configured.rstrip("/")
-    return ""
-
-
-def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
-    return _resolve_base_url()
+def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str | None:
+    return _get_tunnel_url()
 
 
 def _save_session(image_paths: list[str], root: Path) -> str:
@@ -464,6 +444,18 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             publish = False
 
         base_url = _resolve_base_url_for_request(self)
+        if not base_url:
+            _send_json(
+                self,
+                {
+                    "error": (
+                        "No hay un túnel público de ngrok disponible. "
+                        "Inicia ngrok para generar el enlace temporal."
+                    )
+                },
+                status=503,
+            )
+            return
 
         for image_data_url in images:
             if not isinstance(image_data_url, str):
@@ -496,7 +488,7 @@ def main() -> None:
     with ReusableTCPServer(("", 5001), handler) as httpd:
         print(
             "Servidor listo en http://localhost:5001 "
-            f"(QR local en {_resolve_base_url()})"
+            "(esperando túnel ngrok para el QR)"
         )
         httpd.serve_forever()
 
