@@ -48,16 +48,10 @@ const drawWatermark = (context, width, height) => {
   if (!watermarkImage.complete || watermarkImage.naturalWidth === 0) {
     return;
   }
-  const maxWidth = width * 0.55;
-  const maxHeight = height * 0.22;
-  const scale = Math.min(
-    maxWidth / watermarkImage.naturalWidth,
-    maxHeight / watermarkImage.naturalHeight
-  );
   const drawWidth = watermarkImage.naturalWidth * scale;
   const drawHeight = watermarkImage.naturalHeight * scale;
   const x = (width - drawWidth) / 2;
-  const y = height - drawHeight - Math.max(height * 0.05, 16);
+  const y = height - drawHeight - Math.max(height * 1, 1000);
   context.save();
   context.globalAlpha = 0.85;
   context.drawImage(watermarkImage, x, y, drawWidth, drawHeight);
