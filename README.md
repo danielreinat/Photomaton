@@ -64,9 +64,10 @@ CLOUDINARY_FOLDER=photomaton
 
 ## Cómo hacer que el QR funcione en el móvil (app de escritorio)
 
-El QR apunta a la URL donde estás abriendo la app. Si la abres en `localhost`
-o en `127.0.0.1`, tu móvil **no** podrá acceder porque esas direcciones en el
-móvil son su propio dispositivo. Para que funcione, tienes dos opciones:
+El QR apunta a la URL desde la que abres la app (Host/X-Forwarded-*). Si la
+abres en `localhost` o en `127.0.0.1`, tu móvil **no** podrá acceder porque
+esas direcciones en el móvil son su propio dispositivo. Para que funcione,
+tienes dos opciones:
 
 ### Si estás desplegado en Render (o similar)
 
@@ -142,8 +143,8 @@ PUBLIC_BASE_URL="https://mi-dominio.com" python app.py
 
 El QR usará esa URL pública para que el móvil abra el enlace de descarga.
 
-> Nota: el valor por defecto actual es `https://photomaton-5b71.onrender.com`
-> y puede cambiarse editando la constante `DEFAULT_PUBLIC_BASE_URL` en `app.py`.
+> Nota: puedes forzar la URL pública con `PUBLIC_BASE_URL` o un túnel
+> con `PUBLIC_TUNNEL_URL`. Si no defines ninguna, se usa la URL de la petición.
 
 ### Comprobar que el QR es accesible
 
