@@ -176,18 +176,27 @@ def _get_local_ip() -> str | None:
         return None
 
 
-DEFAULT_PUBLIC_BASE_URL = "https://photomaton-5b71.onrender.com"
-
-
 def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", DEFAULT_PUBLIC_BASE_URL).strip()
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
     if configured:
         return configured.rstrip("/")
+    tunnel_url = _get_tunnel_url()
+    if tunnel_url:
+        return tunnel_url.rstrip("/")
     return ""
 
 
 def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
-    return _resolve_base_url()
+    configured = _resolve_base_url()
+    if configured:
+        return configured
+    forwarded_proto = handler.headers.get("X-Forwarded-Proto", "").split(",")[0].strip()
+    proto = forwarded_proto if forwarded_proto in {"http", "https"} else "http"
+    host = handler.headers.get("X-Forwarded-Host") or handler.headers.get("Host", "")
+    host = host.split(",")[0].strip()
+    if not host:
+        return ""
+    return f"{proto}://{host}".rstrip("/")
 
 
 def _save_session(image_paths: list[str], root: Path) -> str:
@@ -494,9 +503,11 @@ def main() -> None:
         *args, directory=str(root), **kwargs
     )
     with ReusableTCPServer(("", 5001), handler) as httpd:
+        base_hint = _resolve_base_url()
+        qr_hint = base_hint if base_hint else "auto (Host/X-Forwarded-*)"
         print(
             "Servidor listo en http://localhost:5001 "
-            f"(QR local en {_resolve_base_url()})"
+            f"(QR base en {qr_hint})"
         )
         httpd.serve_forever()
 
