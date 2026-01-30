@@ -178,7 +178,7 @@ def _get_local_ip() -> str | None:
 
 def _resolve_base_url() -> str:
     configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
-    if configured:
+    if configured:  
         return configured.rstrip("/")
     tunnel_url = _get_tunnel_url()
     if tunnel_url:
@@ -190,7 +190,7 @@ def _resolve_base_url() -> str:
 
 
 def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
     if configured:
         return configured.rstrip("/")
     forwarded_proto = handler.headers.get("X-Forwarded-Proto", "").split(",")[0].strip()
