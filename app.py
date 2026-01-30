@@ -189,6 +189,24 @@ def _resolve_base_url() -> str:
     return "http://localhost:5001"
 
 
+def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if configured:
+        return configured.rstrip("/")
+    forwarded_proto = handler.headers.get("X-Forwarded-Proto", "").split(",")[0].strip()
+    forwarded_host = handler.headers.get("X-Forwarded-Host", "").split(",")[0].strip()
+    if forwarded_host:
+        scheme = forwarded_proto or "https"
+        return f"{scheme}://{forwarded_host}"
+    host = handler.headers.get("Host", "").strip()
+    if host:
+        scheme = "http"
+        if forwarded_proto:
+            scheme = forwarded_proto
+        return f"{scheme}://{host}"
+    return _resolve_base_url()
+
+
 def _save_session(image_paths: list[str], root: Path) -> str:
     sessions_dir = root / "sessions"
     sessions_dir.mkdir(parents=True, exist_ok=True)
@@ -329,7 +347,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             if not session or not session.get("images"):
                 self.send_error(404)
                 return
-            base_url = _resolve_base_url()
+            base_url = _resolve_base_url_for_request(self)
             html_payload = _render_download_page(
                 session_id, session["images"], base_url
             )
@@ -462,7 +480,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         if not isinstance(publish, bool):
             publish = False
 
-        base_url = _resolve_base_url()
+        base_url = _resolve_base_url_for_request(self)
 
         for image_data_url in images:
             if not isinstance(image_data_url, str):
