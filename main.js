@@ -42,8 +42,7 @@ const startServer = async () => {
   const serverPath = path.join(app.getAppPath(), 'app.py')
   serverProcess = spawn(pythonCommand, [serverPath], {
     env: {
-      ...process.env,
-      PUBLIC_BASE_URL: SERVER_URL,
+      ...process.env,ain
     },
     stdio: 'inherit',
   })
