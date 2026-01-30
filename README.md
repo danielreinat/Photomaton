@@ -35,6 +35,18 @@ python app.py
 
 Por defecto el servidor queda en `http://localhost:5001`.
 
+## Configurar la contraseña de acceso/salida
+
+La protección por contraseña está configurada en el HTML. Para cambiarla,
+edita el atributo `data-access-password` en `public/index.html`:
+
+```html
+<body data-access-password="TU_PASSWORD">
+```
+
+Usa el mismo valor para desbloquear la entrada y para autorizar el cierre de
+la pestaña o ventana.
+
 ## Configurar Cloudinary (Render u otro hosting)
 
 Si defines las variables de entorno de Cloudinary, las fotos se suben allí.
