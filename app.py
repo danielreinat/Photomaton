@@ -177,7 +177,7 @@ def _get_local_ip() -> str | None:
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    configured = os.getenv("PUBLIC_BASE_URL", "https://photomaton-5b71.onrender.com").strip()
     if configured:
         return configured.rstrip("/")
     tunnel_url = _get_tunnel_url()
