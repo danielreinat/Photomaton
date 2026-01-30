@@ -27,7 +27,7 @@ let publishChoice = null;
 let currentFilter = "normal";
 let isChoosingFilter = false;
 
-const PHOTO_ASPECT_RATIO = 2 / 3;
+const PHOTO_ASPECT_RATIO = 3 / 2;
 
 const FILTERS = {
   normal: {
@@ -169,8 +169,8 @@ const updateCountdown = (value) => {
 const PHOTO_CONSTRAINTS = {
   facingMode: "user",
   aspectRatio: PHOTO_ASPECT_RATIO,
-  width: { ideal: 3000 },
-  height: { ideal: 4500 },
+  width: { ideal: 4500 },
+  height: { ideal: 3000 },
   frameRate: { ideal: 30, max: 60 },
 };
 
@@ -384,7 +384,7 @@ const createDownloadSession = async () => {
       throw new Error(payload.error || "No se pudo generar el enlace.");
     }
     downloadUrl = payload.downloadUrl;
-    downloadStatus.textContent = "Enlace listo. Escanea el QR para abrir tus fotos.";
+    downloadStatus.textContent = "Enlace listo.";
     statusLabel.textContent = "QR de descarga preparado.";
     if (qrPanel && qrImage) {
       qrImage.setAttribute(
