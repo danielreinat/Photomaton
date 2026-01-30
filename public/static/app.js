@@ -194,7 +194,13 @@ const handleSecuritySuccess = () => {
     exitApproved = true;
     hideSecurityModal();
     window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.close();
+    const attemptClose = () => {
+      window.close();
+      if (!window.closed) {
+        window.location.replace("about:blank");
+      }
+    };
+    setTimeout(attemptClose, 50);
   } else {
     securityUnlocked = true;
     hideSecurityModal();
