@@ -68,6 +68,17 @@ El QR apunta a la URL donde estás abriendo la app. Si la abres en `localhost`
 o en `127.0.0.1`, tu móvil **no** podrá acceder porque esas direcciones en el
 móvil son su propio dispositivo. Para que funcione, tienes dos opciones:
 
+### Si estás desplegado en Render (o similar)
+
+Cuando la app está detrás de un hosting como Render, el servidor toma el host
+de la petición (cabeceras `X-Forwarded-*`/`Host`) para construir el enlace del QR,
+así el móvil puede abrirlo desde cualquier red. Si necesitas forzar la URL
+pública, define:
+
+```bash
+PUBLIC_BASE_URL="https://tu-app.onrender.com" python app.py
+```
+
 ### Opción A: usar un túnel público (recomendado)
 
 Si quieres que el QR funcione desde cualquier dispositivo sin configurar IPs,
