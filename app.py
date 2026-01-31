@@ -214,11 +214,6 @@ def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
     configured = os.getenv("PUBLIC_BASE_URL", "").strip()
     if configured:
         return configured.rstrip("/")
-    tunnel_url = _ensure_ngrok_tunnel(5002)
-    if tunnel_url:
-        return tunnel_url.rstrip("/")
-    return ""
-
 
 def _save_session(image_paths: list[str], root: Path) -> str:
     sessions_dir = root / "sessions"
