@@ -190,18 +190,6 @@ def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
     configured = os.getenv("PUBLIC_BASE_URL", "").strip()
     if configured:
         return configured.rstrip("/")
-    host = handler.headers.get("X-Forwarded-Host") or handler.headers.get("Host")
-    if not host:
-        return _resolve_base_url()
-    forwarded_proto = handler.headers.get("X-Forwarded-Proto")
-    if not forwarded_proto:
-        forwarded = handler.headers.get("Forwarded", "")
-        match = re.search(r"proto=([^;,\s]+)", forwarded, re.IGNORECASE)
-        if match:
-            forwarded_proto = match.group(1)
-    scheme = "https" if forwarded_proto == "https" else "http"
-    return f"{scheme}://{host}".rstrip("/")
-
 
 def _save_session(image_paths: list[str], root: Path) -> str:
     sessions_dir = root / "sessions"
