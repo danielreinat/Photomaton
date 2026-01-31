@@ -495,7 +495,7 @@ def main() -> None:
     )
     with ReusableTCPServer(("", 5002), handler) as httpd:
         print(
-            "Servidor listo en http://localhost:5001"
+            "Servidor listo en http://localhost:5002"
             f"(QR local en {_resolve_base_url()})"
         )
         httpd.serve_forever()
