@@ -187,6 +187,12 @@ def _resolve_base_url() -> str:
 
 
 def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if configured:
+        return configured.rstrip("/")
+    tunnel_url = _get_tunnel_url()
+    if tunnel_url:
+        return tunnel_url.rstrip("/")
     return _resolve_base_url()
 
 
