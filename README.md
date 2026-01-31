@@ -33,7 +33,7 @@ cd Photomaton
 python app.py
 ```
 
-Por defecto el servidor queda en `http://localhost:5001`.
+Por defecto el servidor queda en `http://localhost:5002`.
 
 ## Configurar la contraseña de acceso/salida
 
@@ -106,7 +106,7 @@ python app.py
 2. En otra terminal, abre un túnel (ngrok):
 
 ```bash
-ngrok http 5001
+ngrok http 5002
 ```
 
 3. La app intentará usar la URL pública automáticamente para el QR.
@@ -129,17 +129,17 @@ NGROK_API_URL="http://127.0.0.1:4040/api/tunnels" python app.py
 2. Abre la app desde esa IP:
 
 ```text
-http://192.168.1.50:5001
+http://192.168.1.50:5002
 ```
 
 3. Genera el QR desde esa URL y el móvil podrá abrirlo si está en la misma red.
 4. Si usas la app como escritorio, puedes dejar configurado:
 
 ```bash
-PUBLIC_BASE_URL="http://192.168.1.50:5001" python app.py
+PUBLIC_BASE_URL="http://192.168.1.50:5002" python app.py
 ```
 
-5. Asegúrate de que el firewall permite conexiones al puerto 5001.
+5. Asegúrate de que el firewall permite conexiones al puerto 5002.
 6. Si ves un aviso de que el QR apunta a localhost, repite los pasos anteriores.
 
 ### Opción C: definir una URL pública
