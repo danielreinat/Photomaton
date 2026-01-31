@@ -9,7 +9,8 @@ import io
 import json
 import mimetypes
 import re
-import socket
+import shutil
+import subprocess
 import time
 import uuid
 import urllib.parse
@@ -167,27 +168,56 @@ def _get_tunnel_url() -> str | None:
     return None
 
 
-def _get_local_ip() -> str | None:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.connect(("8.8.8.8", 80))
-            return sock.getsockname()[0]
-    except Exception:
-        return None
+_NGROK_PROCESS: subprocess.Popen | None = None
+_NGROK_TUNNEL_URL: str | None = None
 
 
-DEFAULT_PUBLIC_BASE_URL = "https://photomaton-5b71.onrender.com"
+def _ensure_ngrok_tunnel(port: int) -> str | None:
+    global _NGROK_PROCESS, _NGROK_TUNNEL_URL
+    if _NGROK_TUNNEL_URL:
+        return _NGROK_TUNNEL_URL
+    existing = _get_tunnel_url()
+    if existing:
+        _NGROK_TUNNEL_URL = existing.rstrip("/")
+        return _NGROK_TUNNEL_URL
+    if _NGROK_PROCESS and _NGROK_PROCESS.poll() is not None:
+        _NGROK_PROCESS = None
+    if _NGROK_PROCESS is None:
+        ngrok_bin = shutil.which("ngrok")
+        if not ngrok_bin:
+            return None
+        _NGROK_PROCESS = subprocess.Popen(
+            [ngrok_bin, "http", str(port)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    for _ in range(12):
+        time.sleep(0.5)
+        tunnel_url = _get_tunnel_url()
+        if tunnel_url:
+            _NGROK_TUNNEL_URL = tunnel_url.rstrip("/")
+            return _NGROK_TUNNEL_URL
+    return None
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("PUBLIC_BASE_URL", DEFAULT_PUBLIC_BASE_URL).strip()
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
     if configured:
         return configured.rstrip("/")
+    tunnel_url = _ensure_ngrok_tunnel(5002)
+    if tunnel_url:
+        return tunnel_url.rstrip("/")
     return ""
 
 
 def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
-    return _resolve_base_url()
+    configured = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if configured:
+        return configured.rstrip("/")
+    tunnel_url = _ensure_ngrok_tunnel(5002)
+    if tunnel_url:
+        return tunnel_url.rstrip("/")
+    return ""
 
 
 def _save_session(image_paths: list[str], root: Path) -> str:
@@ -464,6 +494,13 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             publish = False
 
         base_url = _resolve_base_url_for_request(self)
+        if not base_url:
+            _send_json(
+                self,
+                {"error": "No se pudo generar la URL pública de ngrok."},
+                status=503,
+            )
+            return
 
         for image_data_url in images:
             if not isinstance(image_data_url, str):
