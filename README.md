@@ -94,8 +94,9 @@ PUBLIC_BASE_URL="https://tu-app.onrender.com" python app.py
 ### Opción A: usar un túnel público (recomendado)
 
 Si quieres que el QR funcione desde cualquier dispositivo sin configurar IPs,
-abre un túnel que exponga tu servidor local. La app detecta automáticamente
-la URL pública de ngrok si está en ejecución.
+abre un túnel que exponga tu servidor local. La app intentará iniciar ngrok
+automáticamente si está instalado y, si ya lo tienes abierto, detectará la URL
+pública desde la API local.
 
 1. Inicia el servidor local:
 
@@ -103,7 +104,7 @@ la URL pública de ngrok si está en ejecución.
 python app.py
 ```
 
-2. En otra terminal, abre un túnel (ngrok):
+2. Si prefieres controlarlo manualmente, en otra terminal abre un túnel (ngrok):
 
 ```bash
 ngrok http 5002
