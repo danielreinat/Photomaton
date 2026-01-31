@@ -2,6 +2,25 @@ from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from pathlib import Path
 import os
+
+
+def _load_env_file() -> None:
+    """Carga variables de entorno desde .env si existe."""
+    env_path = Path(__file__).parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_env_file()
 import base64
 import html
 import hashlib
@@ -204,16 +223,17 @@ def _resolve_base_url() -> str:
     configured = os.getenv("PUBLIC_BASE_URL", "").strip()
     if configured:
         return configured.rstrip("/")
-    tunnel_url = _ensure_ngrok_tunnel(5002)
-    if tunnel_url:
-        return tunnel_url.rstrip("/")
-    return ""
+    # URL fija de Render para descargas
+    return "https://photomaton-5b71.onrender.com"
 
 
 def _resolve_base_url_for_request(handler: SimpleHTTPRequestHandler) -> str:
     configured = os.getenv("PUBLIC_BASE_URL", "").strip()
     if configured:
         return configured.rstrip("/")
+    # URL fija de Render para descargas
+    return "https://photomaton-5b71.onrender.com"
+
 
 def _save_session(image_paths: list[str], root: Path) -> str:
     sessions_dir = root / "sessions"
@@ -235,15 +255,40 @@ def _load_session(session_id: str, root: Path) -> dict | None:
         return None
 
 
-def _render_download_page(session_id: str, images: list[str], base_url: str | None) -> str:
+def _encode_images_token(image_urls: list[str]) -> str:
+    """Codifica las URLs de imágenes en un token base64 seguro para URLs."""
+    payload = json.dumps(image_urls, separators=(",", ":"))
+    encoded = base64.urlsafe_b64encode(payload.encode("utf-8")).decode("utf-8")
+    return encoded.rstrip("=")
+
+
+def _decode_images_token(token: str) -> list[str] | None:
+    """Decodifica el token de imágenes."""
+    try:
+        # Restaurar padding de base64
+        padding = 4 - len(token) % 4
+        if padding != 4:
+            token += "=" * padding
+        payload = base64.urlsafe_b64decode(token.encode("utf-8")).decode("utf-8")
+        images = json.loads(payload)
+        if isinstance(images, list) and all(isinstance(url, str) for url in images):
+            return images
+        return None
+    except Exception:
+        return None
+
+
+def _render_download_page(token: str, images: list[str], base_url: str | None) -> str:
     asset_prefix = f"{base_url}/static" if base_url else "/static"
     link_prefix = base_url or ""
     items_html = []
     for index, image_path in enumerate(images, start=1):
         safe_path = html.escape(image_path, quote=True)
-        filename = Path(image_path).name
+        filename = Path(urllib.parse.urlparse(image_path).path).name or f"foto-{index}.jpg"
         safe_filename = html.escape(filename, quote=True)
-        download_link = f"{link_prefix}/download-photo/{session_id}/{index}"
+        # Codificar URL individual para descarga
+        single_token = _encode_images_token([image_path])
+        download_link = f"{link_prefix}/download-photo?t={single_token}&n={urllib.parse.quote(filename)}"
         items_html.append(
             f"""
             <li class="download-item">
@@ -271,7 +316,7 @@ def _render_download_page(session_id: str, images: list[str], base_url: str | No
       <header>
         <h1>Descarga tus fotos</h1>
         <div class="download-actions">
-          <a class="button" id="downloadAll" href="{link_prefix}/download-all/{session_id}">
+          <a class="button" id="downloadAll" href="{link_prefix}/download-all?t={token}">
             Descargar todas
           </a>
         </div>
@@ -279,7 +324,7 @@ def _render_download_page(session_id: str, images: list[str], base_url: str | No
       <ul class="download-list">
         {items}
       </ul>
-      <p class="helper">Puedes guardar cada foto en tu móvil tocando “Descargar”.</p>
+      <p class="helper">Puedes guardar cada foto en tu móvil tocando "Descargar".</p>
     </main>
     <script>
       const downloadAllButton = document.getElementById("downloadAll");
@@ -346,6 +391,28 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             super().do_GET()
             return
 
+        # Nueva ruta con token: /download?t=TOKEN
+        if parsed_url.path == "/download":
+            query = urllib.parse.parse_qs(parsed_url.query)
+            token = query.get("t", [""])[0]
+            if not token:
+                self.send_error(404)
+                return
+            images = _decode_images_token(token)
+            if not images:
+                self.send_error(404)
+                return
+            base_url = _resolve_base_url_for_request(self)
+            html_payload = _render_download_page(token, images, base_url)
+            encoded = html_payload.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
+        # Compatibilidad: /download/SESSION_ID (sesiones locales antiguas)
         if self.path.startswith("/download/"):
             session_id = self.path.split("/download/")[-1].strip()
             if not session_id:
@@ -355,10 +422,10 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             if not session or not session.get("images"):
                 self.send_error(404)
                 return
+            # Generar token y redirigir al nuevo formato
+            token = _encode_images_token(session["images"])
             base_url = _resolve_base_url_for_request(self)
-            html_payload = _render_download_page(
-                session_id, session["images"], base_url
-            )
+            html_payload = _render_download_page(token, session["images"], base_url)
             encoded = html_payload.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -367,6 +434,53 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             self.wfile.write(encoded)
             return
 
+        # Nueva ruta: /download-photo?t=TOKEN&n=FILENAME
+        if parsed_url.path == "/download-photo":
+            query = urllib.parse.parse_qs(parsed_url.query)
+            token = query.get("t", [""])[0]
+            filename = query.get("n", ["foto.jpg"])[0]
+            if not token:
+                self.send_error(404)
+                return
+            images = _decode_images_token(token)
+            if not images or len(images) == 0:
+                self.send_error(404)
+                return
+            image_path = images[0]
+            if image_path.startswith("http"):
+                try:
+                    with urllib.request.urlopen(image_path, timeout=10) as response:
+                        payload = response.read()
+                        content_type = response.headers.get("Content-Type", "application/octet-stream")
+                except Exception:
+                    self.send_error(502, "No se pudo descargar la imagen.")
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header(
+                    "Content-Disposition", f'attachment; filename="{filename}"'
+                )
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+                return
+            file_path = Path(self.directory) / image_path.lstrip("/")
+            if not file_path.exists():
+                self.send_error(404)
+                return
+            payload = file_path.read_bytes()
+            content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header(
+                "Content-Disposition", f'attachment; filename="{file_path.name}"'
+            )
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
+        # Compatibilidad: /download-photo/SESSION_ID/INDEX
         if self.path.startswith("/download-photo/"):
             parts = self.path.split("/download-photo/")[-1].strip().split("/")
             if len(parts) != 2:
@@ -422,6 +536,47 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
             self.wfile.write(payload)
             return
 
+        # Nueva ruta: /download-all?t=TOKEN
+        if parsed_url.path == "/download-all":
+            query = urllib.parse.parse_qs(parsed_url.query)
+            token = query.get("t", [""])[0]
+            if not token:
+                self.send_error(404)
+                return
+            images = _decode_images_token(token)
+            if not images:
+                self.send_error(404)
+                return
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+                for image_path in images:
+                    if image_path.startswith("http"):
+                        try:
+                            with urllib.request.urlopen(image_path, timeout=10) as response:
+                                payload = response.read()
+                            filename = Path(
+                                urllib.parse.urlparse(image_path).path
+                            ).name or "photo.png"
+                            zip_file.writestr(filename, payload)
+                        except Exception:
+                            continue
+                    else:
+                        file_path = Path(self.directory) / image_path.lstrip("/")
+                        if not file_path.exists():
+                            continue
+                        zip_file.write(file_path, arcname=file_path.name)
+            zip_payload = zip_buffer.getvalue()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header(
+                "Content-Disposition", 'attachment; filename="photomaton-fotos.zip"'
+            )
+            self.send_header("Content-Length", str(len(zip_payload)))
+            self.end_headers()
+            self.wfile.write(zip_payload)
+            return
+
+        # Compatibilidad: /download-all/SESSION_ID
         if self.path.startswith("/download-all/"):
             session_id = self.path.split("/download-all/")[-1].strip()
             if not session_id:
@@ -492,7 +647,7 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         if not base_url:
             _send_json(
                 self,
-                {"error": "No se pudo generar la URL pública de ngrok."},
+                {"error": "No se pudo generar la URL pública."},
                 status=503,
             )
             return
@@ -507,12 +662,18 @@ class PhotomatonHandler(SimpleHTTPRequestHandler):
         except ValueError as error:
             _send_json(self, {"error": str(error)}, status=400)
             return
-        except Exception:
-            _send_json(self, {"error": "No se pudieron guardar las fotos."}, status=500)
+        except Exception as error:
+            # Log del error para debugging
+            print(f"Error al guardar fotos: {type(error).__name__}: {error}")
+            _send_json(self, {"error": f"No se pudieron guardar las fotos: {error}"}, status=500)
             return
 
-        session_id = _save_session(image_paths, Path(self.directory))
-        download_url = f"{base_url}/download/{session_id}"
+        # Guardar sesión local (para compatibilidad)
+        _save_session(image_paths, Path(self.directory))
+
+        # Generar URL con token (funciona sin archivos locales)
+        token = _encode_images_token(image_paths)
+        download_url = f"{base_url}/download?t={token}"
         _send_json(self, {"downloadUrl": download_url})
 
 
@@ -527,8 +688,8 @@ def main() -> None:
     )
     with ReusableTCPServer(("", 5002), handler) as httpd:
         print(
-            "Servidor listo en http://localhost:5002"
-            f"(QR local en {_resolve_base_url()})"
+            f"Servidor listo en http://localhost:5002 "
+            f"(QR redirige a {_resolve_base_url()})"
         )
         httpd.serve_forever()
 
